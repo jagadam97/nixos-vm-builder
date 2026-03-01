@@ -125,9 +125,9 @@ Your InfluxDB data and config persist across upgrades! 🎉
 
 ## Architecture
 
-- **Container Root**: Ephemeral, contains OS and InfluxDB binaries
-- **Bind Mount** `/var/lib/influxdb2`: Persistent data from host
-- **Bind Mount** `/etc/influxdb2`: Persistent config from host
+- **Container Root**: Ephemeral, contains OS and InfluxDB 3 binaries
+- **Bind Mount** `/var/lib/influxdb3`: Persistent data from host
+- **Bind Mount** `/etc/influxdb3`: Persistent config from host
 - **Root Access**: User `root`, password `qwerty123` (use `pct enter`)
 
 ## Customization

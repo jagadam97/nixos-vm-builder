@@ -2,7 +2,8 @@
 result
 result-*
 
-# NixOS VM builds
+# NixOS LXC builds
+*.tar.xz
 *.qcow2
 *.raw
 *.img
