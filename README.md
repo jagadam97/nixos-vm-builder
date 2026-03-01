@@ -17,11 +17,12 @@ This repository includes automated builds with GitHub Actions:
 - **Automatic builds** on every push/PR
 - **Matrix-based builds** for multiple containers
 - **Artifact uploads** (90-day retention)
+- **Proxmox uploads** (automatic on main branch pushes)
 - **GitHub Releases** when you push a tag
 
-Images are uploaded as artifacts/releases for Terraform to download and deploy.
+Images are automatically uploaded to Proxmox and available for Terraform deployment.
 
-See [.github/README.md](.github/README.md) for details on downloading and using with Terraform.
+See [.github/README.md](.github/README.md) for CI/CD details and [.github/PROXMOX_SETUP.md](.github/PROXMOX_SETUP.md) for Proxmox upload configuration.
 
 **Output naming:** `nixos-image-lxc-{container-name}-{app-version}.tar.xz`
 
