@@ -3,25 +3,12 @@
 {
   imports = [
     "${modulesPath}/virtualisation/lxc-container.nix"
+    ../common/lxc-base.nix
   ];
 
-  # Basic system configuration
-  # Using 26.05 (nixos-unstable baseline)
-  system.stateVersion = "26.05";
-
-  # Network configuration
-  networking = {
-    hostName = "influxdb";
-    useDHCP = false;
-    useHostResolvConf = true;
-    firewall = {
-      enable = true;
-      allowedTCPPorts = [ 8086 8181 ]; # InfluxDB HTTP API and RPC
-    };
-  };
-
-  # LXC container specific settings
-  boot.isContainer = true;
+  # Container hostname
+  networking.hostName = "influxdb";
+  networking.firewall.allowedTCPPorts = [ 8086 8181 ]; # InfluxDB HTTP API and RPC
   
   # InfluxDB will use bind-mounted directories from host
   # In Proxmox LXC config, add:
@@ -70,15 +57,8 @@
 
   # Minimal essential packages for container
   environment.systemPackages = with pkgs; [
-    vim
-    curl
-    htop
     influxdb3
   ];
-
-  # Root user with hashed password (qwerty123)
-  # To generate a new hash: mkpasswd -m sha-512
-  users.users.root.hashedPassword = "$6$G4Owc0wBptUsb0TD$nNhdRoOaPvFqIS03q3Rv9O/OfH9llDsZSDWg9jGgya4VYvUbzCY3yDpSCfYcDu/C5zzBJmh62gLC4O6YNatac0";
 
   # Build metadata accessible inside container
   environment.etc."build-info.txt".text = ''

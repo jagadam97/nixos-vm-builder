@@ -24,6 +24,7 @@ influxdb-lxc:
 list:
 	@echo "Available containers:"
 	@echo "  - influxdb-lxc"
+	@echo "  - maintainer-lxc"
 
 clean:
 	rm -rf result result-* nixos-influxdb-*.tar.xz
