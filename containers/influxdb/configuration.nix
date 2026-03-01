@@ -16,7 +16,7 @@
     useHostResolvConf = true;
     firewall = {
       enable = true;
-      allowedTCPPorts = [ 8086 ]; # InfluxDB HTTP API
+      allowedTCPPorts = [ 8086 8181 ]; # InfluxDB HTTP API and RPC
     };
   };
 
@@ -25,21 +25,46 @@
   
   # InfluxDB will use bind-mounted directories from host
   # In Proxmox LXC config, add:
-  # mp0: /path/on/host/influxdb-data,mp=/var/lib/influxdb2
-  # mp1: /path/on/host/influxdb-config,mp=/etc/influxdb2
+  # mp0: /path/on/host/influxdb-data,mp=/var/lib/influxdb3
+  # mp1: /path/on/host/influxdb-config,mp=/etc/influxdb3
   
   # Ensure directories exist
   systemd.tmpfiles.rules = [
-    "d /var/lib/influxdb2 0755 influxdb2 influxdb2 -"
-    "d /etc/influxdb2 0755 influxdb2 influxdb2 -"
+    "d /var/lib/influxdb3 0755 influxdb influxdb -"
+    "d /etc/influxdb3 0755 influxdb influxdb -"
   ];
 
-  # InfluxDB service configuration
-  services.influxdb2 = {
-    enable = true;
-    settings = {
-      http-bind-address = "0.0.0.0:8086";
-      reporting-disabled = true;
+  # Create influxdb user and group
+  users.users.influxdb = {
+    isSystemUser = true;
+    group = "influxdb";
+    home = "/var/lib/influxdb3";
+  };
+  users.groups.influxdb = {};
+
+  # InfluxDB 3 systemd service
+  systemd.services.influxdb3 = {
+    description = "InfluxDB 3.0 Server";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" ];
+    
+    serviceConfig = {
+      ExecStart = "${pkgs.influxdb3}/bin/influxdb3 serve";
+      User = "influxdb";
+      Group = "influxdb";
+      Restart = "on-failure";
+      WorkingDirectory = "/var/lib/influxdb3";
+      
+      # Security settings
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      ReadWritePaths = [ "/var/lib/influxdb3" "/etc/influxdb3" ];
+    };
+
+    environment = {
+      INFLUXDB_IOX_DB_DIR = "/var/lib/influxdb3";
     };
   };
 
@@ -48,7 +73,7 @@
     vim
     curl
     htop
-    influxdb2-cli
+    influxdb3
   ];
 
   # Root user with hashed password (qwerty123)
@@ -59,7 +84,7 @@
   environment.etc."build-info.txt".text = ''
     Container: influxdb-lxc
     NixOS Version: ${config.system.nixos.version}
-    InfluxDB Version: ${pkgs.influxdb2-server.version}
+    InfluxDB Version: ${pkgs.influxdb3.version}
     
     To see metadata: cat /etc/build-info.txt
   '';
