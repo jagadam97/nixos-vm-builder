@@ -38,13 +38,10 @@ jobs:
           echo "path=${TARBALL}" >> $GITHUB_OUTPUT
           echo "name=${TARBALL}" >> $GITHUB_OUTPUT
           echo "Found: ${TARBALL}"
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.container }}
-          path: ${{ steps.tarball.outputs.path }}
-          retention-days: 90
+          
+          # Get file size for display
+          SIZE=$(du -h ${TARBALL} | cut -f1)
+          echo "size=${SIZE}" >> $GITHUB_OUTPUT
 
       - name: Upload to Proxmox
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -58,11 +55,51 @@ jobs:
           sudo apt-get update && sudo apt-get install -y jq
           ./scripts/upload-to-proxmox.sh ${{ steps.tarball.outputs.path }}
 
-      - name: Create Release
+      - name: Generate release tag
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        id: release_tag
+        run: |
+          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
+          TAG="build-${TIMESTAMP}"
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "Release tag: ${TAG}"
+
+      - name: Create Latest Release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.release_tag.outputs.tag }}
+          name: "Build ${{ steps.release_tag.outputs.tag }}"
+          files: ${{ steps.tarball.outputs.path }}
+          body: |
+            **Automated build from commit:** ${{ github.sha }}
+            
+            **Container:** ${{ matrix.container }}
+            **Size:** ${{ steps.tarball.outputs.size }}
+            **Commit:** ${{ github.event.head_commit.message }}
+            
+            ### Uploaded to Proxmox
+            - Storage: `${{ secrets.PROXMOX_STORAGE }}:vztmpl/${{ steps.tarball.outputs.name }}`
+            
+            ### Files
+            - `${{ steps.tarball.outputs.name }}`
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create Versioned Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
           files: ${{ steps.tarball.outputs.path }}
+          body: |
+            **Version Release:** ${{ github.ref_name }}
+            
+            **Container:** ${{ matrix.container }}
+            **Size:** ${{ steps.tarball.outputs.size }}
+            
+            ### Files
+            - `${{ steps.tarball.outputs.name }}`
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
