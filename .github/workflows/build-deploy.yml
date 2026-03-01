@@ -15,8 +15,7 @@ jobs:
     strategy:
       matrix:
         container:
-          - name: influxdb-lxc
-            app: influxdb2
+          - influxdb-lxc
             
     steps:
       - name: Checkout repository
@@ -28,47 +27,30 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Build ${{ matrix.container.name }}
+      - name: Build ${{ matrix.container }}
         run: |
-          nix build .#${{ matrix.container.name }} --print-build-logs
+          make ${{ matrix.container }}
 
-      - name: Extract application version
-        id: version
+      - name: Find built tarball
+        id: tarball
         run: |
-          # Get the application version from the built derivation
-          APP_VERSION=$(nix eval .#nixosConfigurations.${{ matrix.container.name }}.config.system.nixos.release --raw)
-          PKG_VERSION=$(nix eval .#nixosConfigurations.${{ matrix.container.name }}.config.services.influxdb2.package.version --raw 2>/dev/null || echo "latest")
-          
-          echo "app_version=${PKG_VERSION}" >> $GITHUB_OUTPUT
-          echo "nixos_version=${APP_VERSION}" >> $GITHUB_OUTPUT
-          
-          echo "Application version: ${PKG_VERSION}"
-          echo "NixOS version: ${APP_VERSION}"
-
-      - name: Rename tarball with version
-        id: rename
-        run: |
-          ORIGINAL_TARBALL=$(ls result/tarball/*.tar.xz)
-          NEW_NAME="nixos-image-lxc-${{ matrix.container.name }}-${{ steps.version.outputs.app_version }}.tar.xz"
-          
-          cp "${ORIGINAL_TARBALL}" "${NEW_NAME}"
-          echo "tarball_path=${NEW_NAME}" >> $GITHUB_OUTPUT
-          echo "tarball_name=${NEW_NAME}" >> $GITHUB_OUTPUT
-          
-          ls -lh "${NEW_NAME}"
+          TARBALL=$(ls nixos-image-lxc-*.tar.xz)
+          echo "path=${TARBALL}" >> $GITHUB_OUTPUT
+          echo "name=${TARBALL}" >> $GITHUB_OUTPUT
+          echo "Found: ${TARBALL}"
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.container.name }}-${{ steps.version.outputs.app_version }}
-          path: ${{ steps.rename.outputs.tarball_path }}
+          name: ${{ matrix.container }}
+          path: ${{ steps.tarball.outputs.path }}
           retention-days: 90
 
       - name: Create Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v1
         with:
-          files: ${{ steps.rename.outputs.tarball_path }}
+          files: ${{ steps.tarball.outputs.path }}
           generate_release_notes: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
