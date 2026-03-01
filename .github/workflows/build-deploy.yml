@@ -37,7 +37,7 @@ jobs:
       - name: Find built tarball
         id: tarball
         run: |
-          TARBALL=$(ls nixos-image-lxc-*.tar.xz)
+          TARBALL=$(ls nixos-influxdb-*.tar.xz)
           echo "path=${TARBALL}" >> $GITHUB_OUTPUT
           echo "name=${TARBALL}" >> $GITHUB_OUTPUT
           echo "Found: ${TARBALL}"
@@ -46,25 +46,16 @@ jobs:
           SIZE=$(du -h ${TARBALL} | cut -f1)
           echo "size=${SIZE}" >> $GITHUB_OUTPUT
 
-      - name: Upload to Proxmox
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        env:
-          PROXMOX_HOST: ${{ secrets.PROXMOX_HOST }}
-          PROXMOX_USER: ${{ secrets.PROXMOX_USER }}
-          PROXMOX_PASSWORD: ${{ secrets.PROXMOX_PASSWORD }}
-          PROXMOX_NODE: ${{ secrets.PROXMOX_NODE }}
-          PROXMOX_STORAGE: ${{ secrets.PROXMOX_STORAGE }}
-        run: |
-          sudo apt-get update && sudo apt-get install -y jq
-          ./scripts/upload-to-proxmox.sh ${{ steps.tarball.outputs.path }}
-
       - name: Generate release tag
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         id: release_tag
         run: |
-          TIMESTAMP=$(date +%Y%m%d-%H%M%S)
-          TAG="build-${TIMESTAMP}"
+          # Extract version from filename (nixos-influxdb-vX.Y.Z.tar.xz)
+          FILENAME="${{ steps.tarball.outputs.name }}"
+          VERSION=$(echo "$FILENAME" | sed -n 's/nixos-influxdb-\(v[^.]*\.[^.]*\.[^.]*\)\.tar\.xz/\1/p')
+          TAG="${VERSION}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Release tag: ${TAG}"
 
       - name: Create Latest Release
@@ -72,17 +63,15 @@ jobs:
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.release_tag.outputs.tag }}
-          name: "Build ${{ steps.release_tag.outputs.tag }}"
+          name: "InfluxDB ${{ steps.release_tag.outputs.version }} - Build"
           files: ${{ steps.tarball.outputs.path }}
           body: |
             **Automated build from commit:** ${{ github.sha }}
             
             **Container:** ${{ matrix.container }}
+            **Version:** ${{ steps.release_tag.outputs.version }}
             **Size:** ${{ steps.tarball.outputs.size }}
             **Commit:** ${{ github.event.head_commit.message }}
-            
-            ### Uploaded to Proxmox
-            - Storage: `${{ secrets.PROXMOX_STORAGE }}:vztmpl/${{ steps.tarball.outputs.name }}`
             
             ### Files
             - `${{ steps.tarball.outputs.name }}`

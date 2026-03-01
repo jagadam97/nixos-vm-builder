@@ -13,9 +13,10 @@ influxdb-lxc:
 	@echo "Building InfluxDB LXC container..."
 	nix build .#influxdb-lxc --print-build-logs
 	@echo ""
-	@echo "Creating final tarball..."
+	@echo "Creating final tarball with version..."
 	@ORIGINAL_TARBALL=$$(ls result/tarball/*.tar.xz); \
-	NEW_NAME="nixos-image-lxc-influxdb-lxc.tar.xz"; \
+	INFLUXDB_VERSION=$$(nix eval nixpkgs#influxdb3.version --raw); \
+	NEW_NAME="nixos-influxdb-v$${INFLUXDB_VERSION}.tar.xz"; \
 	cp "$$ORIGINAL_TARBALL" "$$NEW_NAME"; \
 	echo "✓ Created: $$NEW_NAME"; \
 	ls -lh "$$NEW_NAME"
@@ -25,5 +26,5 @@ list:
 	@echo "  - influxdb-lxc"
 
 clean:
-	rm -rf result result-* nixos-image-lxc-*.tar.xz
+	rm -rf result result-* nixos-influxdb-*.tar.xz
 	@echo "Cleaned build artifacts"
