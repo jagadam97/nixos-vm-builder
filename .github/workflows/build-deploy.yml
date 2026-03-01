@@ -38,6 +38,7 @@ jobs:
         id: tarball
         run: |
           TARBALL=$(ls nixos-influxdb-*.tar.xz)
+          TARBALL=$(ls nixos-influxdb-*.tar.xz)
           echo "path=${TARBALL}" >> $GITHUB_OUTPUT
           echo "name=${TARBALL}" >> $GITHUB_OUTPUT
           echo "Found: ${TARBALL}"
@@ -56,6 +57,7 @@ jobs:
           TAG="${VERSION}"
           echo "tag=${TAG}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
           echo "Release tag: ${TAG}"
 
       - name: Create Latest Release
@@ -64,11 +66,13 @@ jobs:
         with:
           tag_name: ${{ steps.release_tag.outputs.tag }}
           name: "InfluxDB ${{ steps.release_tag.outputs.version }} - Build"
+          name: "InfluxDB ${{ steps.release_tag.outputs.version }} - Build"
           files: ${{ steps.tarball.outputs.path }}
           body: |
             **Automated build from commit:** ${{ github.sha }}
             
             **Container:** ${{ matrix.container }}
+            **Version:** ${{ steps.release_tag.outputs.version }}
             **Version:** ${{ steps.release_tag.outputs.version }}
             **Size:** ${{ steps.tarball.outputs.size }}
             **Commit:** ${{ github.event.head_commit.message }}
