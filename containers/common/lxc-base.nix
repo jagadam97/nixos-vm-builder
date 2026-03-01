@@ -29,7 +29,7 @@
     curl
     wget
     htop
-    
+
     # Debugging and system tools
     coreutils          # ls, cat, rm, cp, chmod, etc.
     bash
@@ -42,14 +42,5 @@
     ps_mem             # Memory debugging
     man                # Documentation
     less               # Paging
-    
-    # Additional utilities
-    git
-    file
-    tree
-    zip
-    unzip
-    tar
-    gzip
   ];
 }
