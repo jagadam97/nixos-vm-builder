@@ -32,9 +32,16 @@ influxdb-vm:
 	nix build .#influxdb-vm --print-build-logs
 	@echo ""
 	@echo "Starting VM (no GUI, serial console)..."
+	@echo "Login: root / qwerty123"
+	@echo ""
+	@echo "Port forwarding:"
+	@echo "  localhost:8086 -> VM InfluxDB HTTP API"
+	@echo ""
+	@echo "Test from host: curl http://localhost:8086/health"
+	@echo ""
 	@echo "Press Ctrl+A then X to exit QEMU"
 	@echo ""
-	QEMU_KERNEL_PARAMS=console=ttyS0 result/bin/run-influxdb-vm-vm -nographic
+	result/bin/run-influxdb-vm -nographic
 
 test:
 	@if [ -z "$(CONTAINER)" ]; then \

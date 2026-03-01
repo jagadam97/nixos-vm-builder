@@ -12,9 +12,8 @@
   # Container hostname
   networking.hostName = "influxdb";
   networking.firewall.allowedTCPPorts = [
-    8086
-    8181
-  ]; # InfluxDB HTTP API and RPC
+    8086 # InfluxDB HTTP API
+  ];
 
   # InfluxDB will use bind-mounted directories from host
   # In Proxmox LXC config, add:
@@ -42,7 +41,7 @@
     after = [ "network.target" ];
 
     serviceConfig = {
-      ExecStart = "${pkgs.influxdb3}/bin/influxdb3 serve";
+      ExecStart = "${pkgs.influxdb3}/bin/influxdb3 serve --node-id influxdb-node --object-store file --data-dir /var/lib/influxdb3 --http-bind 0.0.0.0:8086";
       User = "influxdb";
       Group = "influxdb";
       Restart = "on-failure";
