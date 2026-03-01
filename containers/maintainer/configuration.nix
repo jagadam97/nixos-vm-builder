@@ -1,8 +1,11 @@
-{ config, pkgs, lib, modulesPath, ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
-    "${modulesPath}/virtualisation/lxc-container.nix"
     ../common/lxc-base.nix
   ];
 
@@ -18,9 +21,7 @@
   environment.etc."build-info.txt".text = ''
     Container: maintainer-lxc
     NixOS Version: ${config.system.nixos.version}
-    
+
     To see metadata: cat /etc/build-info.txt
   '';
 }
-
-

@@ -1,8 +1,12 @@
-{ config, pkgs, lib, modulesPath, ... }:
+{ pkgs, modulesPath, ... }:
 
 {
   # Basic system configuration
   # Using 26.05 (nixos-unstable baseline)
+  imports = [
+    "${modulesPath}/virtualisation/lxc-container.nix"
+  ];
+
   system.stateVersion = "26.05";
 
   # LXC container specific settings
@@ -31,16 +35,16 @@
     htop
 
     # Debugging and system tools
-    coreutils          # ls, cat, rm, cp, chmod, etc.
+    coreutils # ls, cat, rm, cp, chmod, etc.
     bash
-    findutils          # find
-    diffutils          # diff
-    netcat-openbsd     # nc
-    dig                # DNS debugging
-    strace             # System call tracing
-    lsof               # List open files
-    ps_mem             # Memory debugging
-    man                # Documentation
-    less               # Paging
+    findutils # find
+    diffutils # diff
+    netcat-openbsd # nc
+    dig # DNS debugging
+    strace # System call tracing
+    lsof # List open files
+    ps_mem # Memory debugging
+    man # Documentation
+    less # Paging
   ];
 }

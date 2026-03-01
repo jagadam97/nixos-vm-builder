@@ -1,20 +1,26 @@
-{ config, pkgs, lib, modulesPath, ... }:
+{
+  config,
+  pkgs,
+  ...
+}:
 
 {
   imports = [
-    "${modulesPath}/virtualisation/lxc-container.nix"
     ../common/lxc-base.nix
   ];
 
   # Container hostname
   networking.hostName = "influxdb";
-  networking.firewall.allowedTCPPorts = [ 8086 8181 ]; # InfluxDB HTTP API and RPC
-  
+  networking.firewall.allowedTCPPorts = [
+    8086
+    8181
+  ]; # InfluxDB HTTP API and RPC
+
   # InfluxDB will use bind-mounted directories from host
   # In Proxmox LXC config, add:
   # mp0: /path/on/host/influxdb-data,mp=/var/lib/influxdb3
   # mp1: /path/on/host/influxdb-config,mp=/etc/influxdb3
-  
+
   # Ensure directories exist
   systemd.tmpfiles.rules = [
     "d /var/lib/influxdb3 0755 influxdb influxdb -"
@@ -27,27 +33,30 @@
     group = "influxdb";
     home = "/var/lib/influxdb3";
   };
-  users.groups.influxdb = {};
+  users.groups.influxdb = { };
 
   # InfluxDB 3 systemd service
   systemd.services.influxdb3 = {
     description = "InfluxDB 3.0 Server";
     wantedBy = [ "multi-user.target" ];
     after = [ "network.target" ];
-    
+
     serviceConfig = {
       ExecStart = "${pkgs.influxdb3}/bin/influxdb3 serve";
       User = "influxdb";
       Group = "influxdb";
       Restart = "on-failure";
       WorkingDirectory = "/var/lib/influxdb3";
-      
+
       # Security settings
       NoNewPrivileges = true;
       PrivateTmp = true;
       ProtectSystem = "strict";
       ProtectHome = true;
-      ReadWritePaths = [ "/var/lib/influxdb3" "/etc/influxdb3" ];
+      ReadWritePaths = [
+        "/var/lib/influxdb3"
+        "/etc/influxdb3"
+      ];
     };
 
     environment = {
@@ -65,9 +74,7 @@
     Container: influxdb-lxc
     NixOS Version: ${config.system.nixos.version}
     InfluxDB Version: ${pkgs.influxdb3.version}
-    
+
     To see metadata: cat /etc/build-info.txt
   '';
 }
-
-
