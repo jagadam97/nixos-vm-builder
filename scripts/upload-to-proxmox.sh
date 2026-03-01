@@ -38,7 +38,7 @@ echo "===================================="
 # Get authentication ticket
 echo "Authenticating..."
 AUTH_RESPONSE=$(curl -k -s -S -X POST \
-  "https://${PROXMOX_HOST}:8006/api2/json/access/ticket" \
+  "https://${PROXMOX_HOST}/api2/json/access/ticket" \
   -d "username=${PROXMOX_USER}" \
   -d "password=${PROXMOX_PASSWORD}")
 
@@ -56,7 +56,7 @@ echo "Authentication successful!"
 # Upload the template
 echo "Uploading template..."
 UPLOAD_RESPONSE=$(curl -k -s -S -X POST \
-  "https://${PROXMOX_HOST}:8006/api2/json/nodes/${PROXMOX_NODE}/storage/${PROXMOX_STORAGE}/upload" \
+  "https://${PROXMOX_HOST}/api2/json/nodes/${PROXMOX_NODE}/storage/${PROXMOX_STORAGE}/upload" \
   -H "CSRFPreventionToken: ${CSRF_TOKEN}" \
   -H "Cookie: PVEAuthCookie=${TICKET}" \
   -F "content=vztmpl" \
