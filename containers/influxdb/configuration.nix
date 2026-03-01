@@ -54,5 +54,15 @@
   # Root user with hashed password (qwerty123)
   # To generate a new hash: mkpasswd -m sha-512
   users.users.root.hashedPassword = "$6$G4Owc0wBptUsb0TD$nNhdRoOaPvFqIS03q3Rv9O/OfH9llDsZSDWg9jGgya4VYvUbzCY3yDpSCfYcDu/C5zzBJmh62gLC4O6YNatac0";
+
+  # Build metadata accessible inside container
+  environment.etc."build-info.txt".text = ''
+    Container: influxdb-lxc
+    NixOS Version: ${config.system.nixos.version}
+    InfluxDB Version: ${pkgs.influxdb2-server.version}
+    
+    To see metadata: cat /etc/build-info.txt
+  '';
 }
+
 
