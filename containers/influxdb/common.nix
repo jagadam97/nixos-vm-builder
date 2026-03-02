@@ -1,12 +1,19 @@
 {
   config,
   pkgs,
+  lib,
+  modulesPath,
+  platform,
   ...
 }:
 
+let
+  isLxc = platform == "lxc";
+  isVm = platform == "vm";
+in
 {
   imports = [
-    ../common/lxc-base.nix
+    (if isLxc then ../common/lxc-base.nix else ../common/vm-base.nix)
   ];
 
   # Container hostname
@@ -15,12 +22,7 @@
     8086 # InfluxDB HTTP API
   ];
 
-  # InfluxDB will use bind-mounted directories from host
-  # In Proxmox LXC config, add:
-  # mp0: /path/on/host/influxdb-data,mp=/var/lib/influxdb3
-  # mp1: /path/on/host/influxdb-config,mp=/etc/influxdb3
-
-  # Ensure directories exist
+  # InfluxDB directories
   systemd.tmpfiles.rules = [
     "d /var/lib/influxdb3 0755 influxdb influxdb -"
     "d /etc/influxdb3 0755 influxdb influxdb -"
@@ -69,8 +71,8 @@
   ];
 
   # Build metadata accessible inside container
-  environment.etc."build-info.txt".text = ''
-    Container: influxdb-lxc
+  environment.etc."build-info.txt".text = lib.mkDefault ''
+    Type: influxdb-${platform}
     NixOS Version: ${config.system.nixos.version}
     InfluxDB Version: ${pkgs.influxdb3.version}
 

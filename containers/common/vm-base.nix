@@ -1,6 +1,9 @@
-{ pkgs, ... }:
+{ pkgs, modulesPath, ... }:
 
 {
+  imports = [
+    "${modulesPath}/virtualisation/qemu-vm.nix"
+  ];
   # Basic system configuration
   # Using 26.05 (nixos-unstable baseline)
   system.stateVersion = "26.05";

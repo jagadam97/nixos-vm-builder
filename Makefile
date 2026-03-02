@@ -1,56 +1,56 @@
-.PHONY: help influxdb-lxc influxdb-vm clean list
+.PHONY: help list clean
+
+# Auto-detect container directories (excluding 'common')
+CONTAINER_DIRS := $(wildcard containers/*)
+CONTAINERS := $(notdir $(CONTAINER_DIRS))
+CONTAINERS := $(filter-out common,$(CONTAINERS))
+
+# Generate build targets for each container
+LXC_TARGETS := $(addsuffix -lxc,$(CONTAINERS))
+VM_TARGETS := $(addsuffix -vm-nogui,$(CONTAINERS))
+IMAGE_TARGETS := $(addsuffix -image,$(CONTAINERS))
+
+all: help
 
 help:
-	@echo "NixOS LXC Container Builder for Proxmox"
+	@echo "NixOS Container Builder for Proxmox"
+	@echo ""
+	@echo "Auto-detected containers: $(CONTAINERS)"
 	@echo ""
 	@echo "Available targets:"
-	@echo "  make influxdb-lxc   - Build InfluxDB LXC container"
-	@echo "  make influxdb-vm    - Build and run InfluxDB VM for testing (no GUI)"
-	@echo "  make list           - List all available containers"
-	@echo "  make clean          - Remove build artifacts"
+	@echo "  LXC builds:"
+	@$(foreach c,$(CONTAINERS),echo "    make $(c)-lxc";)
 	@echo ""
-
-influxdb-lxc:
-	@echo "Building InfluxDB LXC container..."
-	nix build .#influxdb-lxc --print-build-logs
+	@echo "  VM builds (headless):"
+	@$(foreach c,$(CONTAINERS),echo "    make $(c)-vm-nogui";)
 	@echo ""
-	@echo "Creating final tarball with version..."
-	@ORIGINAL_TARBALL=$$(ls result/tarball/*.tar.xz); \
-	INFLUXDB_VERSION=$$(nix eval nixpkgs#influxdb3.version --raw); \
-	NEW_NAME="nixos-influxdb-v$${INFLUXDB_VERSION}.tar.xz"; \
-	cp "$$ORIGINAL_TARBALL" "$$NEW_NAME"; \
-	echo "✓ Created: $$NEW_NAME"; \
-	ls -lh "$$NEW_NAME"
+	@echo "  Other:"
+	@echo "    make list    - List all available containers"
+	@echo "    make clean   - Remove build artifacts"
+	@echo ""
 
 list:
-	@echo "Available containers:"
-	@echo "  - influxdb-lxc"
-	@echo "  - maintainer-lxc"
+	@echo "Available containers: $(CONTAINERS)"
 
-influxdb-vm:
-	@echo "Building InfluxDB VM for testing..."
-	nix build .#influxdb-vm --print-build-logs
+# Pattern rule for LXC builds
+%-lxc:
+	@echo "Building $* LXC container..."
+	nix build .#$*-lxc --print-build-logs
+	@echo ""
+	@echo "✓ Build complete:" && ls result/tarball/*.tar.xz
+
+# Pattern rule for VM builds
+%-vm-nogui:
+	@echo "Building $* VM for testing..."
+	nix build .#$*-vm-nogui --print-build-logs
 	@echo ""
 	@echo "Starting VM (no GUI, serial console)..."
 	@echo "Login: root / qwerty123"
 	@echo ""
-	@echo "Port forwarding:"
-	@echo "  localhost:8086 -> VM InfluxDB HTTP API"
-	@echo ""
-	@echo "Test from host: curl http://localhost:8086/health"
-	@echo ""
 	@echo "Press Ctrl+A then X to exit QEMU"
 	@echo ""
-	result/bin/run-influxdb-vm -nographic
-
-test:
-	@if [ -z "$(CONTAINER)" ]; then \
-		echo "Usage: make test CONTAINER=<container-name>"; \
-		echo "Example: make test CONTAINER=influxdb-lxc"; \
-		exit 1; \
-	fi
-	./test-container $(CONTAINER)
+	result/bin/run-$*-vm -nographic
 
 clean:
-	rm -rf result result-* nixos-influxdb-*.tar.xz
+	rm -rf result result-*
 	@echo "Cleaned build artifacts"

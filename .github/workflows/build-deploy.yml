@@ -34,64 +34,70 @@ jobs:
         run: |
           make ${{ matrix.container }}
 
-      - name: Find built tarball
-        id: tarball
+      - name: Prepare release info
+        id: release
         run: |
-          TARBALL=$(ls nixos-influxdb-*.tar.xz)
-          echo "path=${TARBALL}" >> $GITHUB_OUTPUT
-          echo "name=${TARBALL}" >> $GITHUB_OUTPUT
-          echo "Found: ${TARBALL}"
-          
-          # Get file size for display
-          SIZE=$(du -h ${TARBALL} | cut -f1)
-          echo "size=${SIZE}" >> $GITHUB_OUTPUT
+          TARBALL=$(ls result/tarball/*.tar.xz)
+          FILENAME=$(basename "${TARBALL}")
+          SIZE=$(du -h "${TARBALL}" | cut -f1)
 
-      - name: Generate release tag
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        id: release_tag
-        run: |
-          # Extract version from filename (nixos-influxdb-vX.Y.Z.tar.xz)
-          FILENAME="${{ steps.tarball.outputs.name }}"
-          VERSION=$(echo "$FILENAME" | sed -n 's/nixos-influxdb-\(v[^.]*\.[^.]*\.[^.]*\)\.tar\.xz/\1/p')
-          TAG="${VERSION}"
-          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+          # Extract version and container name from filename (<container>-v<version>.tar.xz)
+          VERSION=$(echo "$FILENAME" | sed -n 's/.*-\(v[0-9][^.]*\.[^.]*\.[^.]*\)\.tar\.xz/\1/p')
+          CONTAINER=$(echo "$FILENAME" | sed -n 's/\(.*\)-v[0-9].*\.tar\.xz/\1/p')
+          TAG="${CONTAINER}-${VERSION}"
+
+          echo "path=${TARBALL}" >> $GITHUB_OUTPUT
+          echo "name=${FILENAME}" >> $GITHUB_OUTPUT
+          echo "size=${SIZE}" >> $GITHUB_OUTPUT
           echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "container=${CONTAINER}" >> $GITHUB_OUTPUT
+          echo "tag=${TAG}" >> $GITHUB_OUTPUT
+
+          echo "Tarball: ${TARBALL} (${SIZE})"
           echo "Release tag: ${TAG}"
 
-      - name: Create Latest Release
+      - name: Delete existing release if present
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        uses: softprops/action-gh-release@v1
-        with:
-          tag_name: ${{ steps.release_tag.outputs.tag }}
-          name: "InfluxDB ${{ steps.release_tag.outputs.version }} - Build"
-          files: ${{ steps.tarball.outputs.path }}
-          body: |
-            **Automated build from commit:** ${{ github.sha }}
-            
-            **Container:** ${{ matrix.container }}
-            **Version:** ${{ steps.release_tag.outputs.version }}
-            **Size:** ${{ steps.tarball.outputs.size }}
-            **Commit:** ${{ github.event.head_commit.message }}
-            
-            ### Files
-            - `${{ steps.tarball.outputs.name }}`
-          prerelease: false
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
+          if gh release view "${TAG}" &>/dev/null; then
+            echo "Deleting existing release ${TAG}..."
+            gh release delete "${TAG}" --yes --cleanup-tag
+          else
+            echo "No existing release for ${TAG}"
+          fi
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create Versioned Release
-        if: startsWith(github.ref, 'refs/tags/')
-        uses: softprops/action-gh-release@v1
-        with:
-          files: ${{ steps.tarball.outputs.path }}
-          body: |
-            **Version Release:** ${{ github.ref_name }}
-            
-            **Container:** ${{ matrix.container }}
-            **Size:** ${{ steps.tarball.outputs.size }}
-            
-            ### Files
-            - `${{ steps.tarball.outputs.name }}`
-          generate_release_notes: true
+      - name: Create release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        run: |
+          gh release create "${{ steps.release.outputs.tag }}" \
+            result/tarball/*.tar.xz \
+            --title "${{ steps.release.outputs.container }} ${{ steps.release.outputs.version }}" \
+            --notes "**Automated build from commit:** ${{ github.sha }}
+
+          **Container:** ${{ matrix.container }}
+          **Version:** ${{ steps.release.outputs.version }}
+          **Size:** ${{ steps.release.outputs.size }}
+          **Commit:** ${{ github.event.head_commit.message }}
+
+          ### Files
+          - \`${{ steps.release.outputs.name }}\`"
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create versioned release (tag push)
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          TAG="${{ steps.release.outputs.tag }}"
+          if gh release view "${TAG}" &>/dev/null; then
+            echo "Deleting existing release ${TAG}..."
+            gh release delete "${TAG}" --yes --cleanup-tag
+          fi
+          gh release create "${{ github.ref_name }}" \
+            result/tarball/*.tar.xz \
+            --title "${{ steps.release.outputs.container }} ${{ steps.release.outputs.version }}" \
+            --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
