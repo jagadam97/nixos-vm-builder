@@ -13,8 +13,14 @@
   boot.isContainer = true;
   boot.initrd.enable = false;
 
-  # Set PATH in systemd's default environment so lxc-attach / pct enter picks it up
-  systemd.settings.Manager.DefaultEnvironment = "PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/run/wrappers/bin:/usr/bin:/bin";
+  # Symlink NixOS binaries into /usr/local/bin so they're available via pct enter / lxc-attach
+  # (lxc-attach hardcodes PATH to /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin)
+  system.activationScripts.lxcPath = {
+    text = ''
+      mkdir -p /usr/local/bin
+      ln -sfn /run/current-system/sw/bin/* /usr/local/bin/
+    '';
+  };
 
   # Network configuration
   networking = {
