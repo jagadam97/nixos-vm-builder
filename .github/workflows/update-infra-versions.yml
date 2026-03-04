@@ -25,11 +25,12 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Extract versions from releases
+      - name: Extract versions and changelogs from releases
         id: versions
         run: |
-          # Get all releases and extract container names with versions
+          # Get all releases with their info
           VERSIONS_JSON="{}"
+          CHANGELOG=""
 
           for release in $(gh release list --limit 50 --json tagName --jq '.[].tagName'); do
             # Format: containername-v1.2.3
@@ -37,12 +38,23 @@ jobs:
               container="${BASH_REMATCH[1]}"
               version="${BASH_REMATCH[2]}"
               VERSIONS_JSON=$(echo "$VERSIONS_JSON" | jq -c --arg c "$container" --arg v "$version" '. + {($c): $v}')
+
+              # Get release notes for changelog
+              NOTES=$(gh release view "$release" --json body --jq '.body' 2>/dev/null || echo "")
+              if [ -n "$NOTES" ]; then
+                CHANGELOG="${CHANGELOG}## ${release}\n\n${NOTES}\n\n---\n\n"
+              fi
             fi
           done
 
           # Output as single line JSON
           echo "versions_json=$VERSIONS_JSON" >> $GITHUB_OUTPUT
           echo "Found versions: $VERSIONS_JSON"
+
+          # Output changelog for PR body
+          echo "changelog<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$CHANGELOG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -102,6 +114,10 @@ jobs:
           gh pr create \
             --title "Update container versions" \
             --body "Automatically updated from nixos-vm-builder releases.
+
+          ## Changelog
+
+          ${{ steps.versions.outputs.changelog }}
 
           Check the changes and merge to apply new container versions." \
             --base main
