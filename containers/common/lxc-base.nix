@@ -30,6 +30,7 @@
   # Enable getty on console for Proxmox web console
   systemd.enableEmergencyMode = false;
 
+  # Getty on console device
   systemd.services.lxc-web-console = {
     description = "Getty on Console for Proxmox";
     wantedBy = [ "multi-user.target" ];
@@ -37,6 +38,19 @@
     serviceConfig = {
       Type = "simple";
       ExecStart = "${pkgs.util-linux}/bin/agetty --noclear --keep-baud console 115200,38400,9600 $TERM";
+      Restart = "always";
+      RestartSec = "1sec";
+    };
+  };
+
+  # Getty on tty1 (some Proxmox setups use this)
+  systemd.services.lxc-web-console-tty1 = {
+    description = "Getty on tty1 for Proxmox";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-logind.service" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.util-linux}/bin/agetty --noclear --keep-baud tty1 115200,38400,9600 $TERM";
       Restart = "always";
       RestartSec = "1sec";
     };
