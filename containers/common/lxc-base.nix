@@ -13,16 +13,23 @@
   boot.isContainer = true;
   boot.initrd.enable = false;
 
-  # Symlink NixOS binaries into /usr/bin so they're available via pct enter / lxc-attach
+  # Symlink NixOS binaries into /bin so they're available via pct enter / lxc-attach
   # (lxc-attach hardcodes PATH to /sbin:/bin:/usr/sbin:/usr/bin)
-  # Also replace /bin/sh with bash for a better shell experience
-  system.activationScripts.lxcPath = {
-    text = ''
-      for bin in /run/current-system/sw/bin/*; do
-        ln -sfn "$bin" /usr/bin/
-      done
+  # Using a systemd service instead of activation script to ensure proper timing
+  systemd.services.lxc-bin-symlinks = {
+    description = "Create symlinks for LXC container binaries";
+    wantedBy = [ "multi-user.target" ];
+    before = [ "getty@tty1.service" "getty@console.service" ];
+    after = [ "default.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      RemainAfterExit = true;
+    };
+    script = ''
       mkdir -p /bin
-      ln -sfn /run/current-system/sw/bin/bash /bin/sh
+      for bin in /run/current-system/sw/bin/*; do
+        ln -sfn "$bin" /bin/
+      done
     '';
   };
 
@@ -30,11 +37,13 @@
   systemd.services."getty@tty1".enable = true;
   systemd.services."getty@console".enable = true;
 
-  # Network configuration
+  # Network configuration - DHCP by default
+  # Override by creating containers/<name>/network.nix
   networking = {
-    useDHCP = true;
+    useDHCP = lib.mkDefault true;
     useHostResolvConf = lib.mkForce false;
     firewall.enable = false;
+    nameservers = [ "8.8.8.8" "1.1.1.1" ];
   };
 
   # Enable SSH for remote access

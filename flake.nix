@@ -26,7 +26,10 @@
             ./containers/${name}/common.nix
           ] ++ lib.optional
             (builtins.pathExists (containerDir + "/${name}/version.nix"))
-            ./containers/${name}/version.nix;
+            ./containers/${name}/version.nix
+          ++ lib.optional
+            (builtins.pathExists (containerDir + "/${name}/network.nix"))
+            ./containers/${name}/network.nix;
         };
 
         # VM for testing (headless, with port forwarding)
