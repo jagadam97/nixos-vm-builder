@@ -26,7 +26,7 @@
 
   # Network configuration
   networking = {
-    useDHCP = false;
+    useDHCP = true;
     useHostResolvConf = lib.mkForce false;
     firewall.enable = false;
   };
