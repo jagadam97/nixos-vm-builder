@@ -26,6 +26,10 @@
     '';
   };
 
+  # Enable getty on console for Proxmox web console
+  systemd.services."getty@tty1".enable = true;
+  systemd.services."getty@console".enable = true;
+
   # Network configuration
   networking = {
     useDHCP = true;
