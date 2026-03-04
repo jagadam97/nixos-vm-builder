@@ -21,10 +21,15 @@
         # LXC container configuration
         "${name}-lxc" = nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = { platform = "lxc"; };
+          specialArgs = { platform = "lxc"; name = name; };
           modules = [
-            ./containers/${name}/common.nix
+            # Base template (from repo root)
+            ./base.nix
+            # Container-specific config (auto-discovered)
           ] ++ lib.optional
+            (builtins.pathExists (containerDir + "/${name}/service.nix"))
+            ./containers/${name}/service.nix
+          ++ lib.optional
             (builtins.pathExists (containerDir + "/${name}/version.nix"))
             ./containers/${name}/version.nix
           ++ lib.optional
@@ -35,11 +40,15 @@
         # VM for testing (headless, with port forwarding)
         "${name}-vm-nogui" = nixpkgs.lib.nixosSystem {
           inherit system;
-          specialArgs = { platform = "vm"; };
+          specialArgs = { platform = "vm"; name = name; };
           modules = [
-            ./containers/${name}/common.nix
-            ./containers/${name}/vm-nogui.nix
-          ];
+            ./base.nix
+          ] ++ lib.optional
+            (builtins.pathExists (containerDir + "/${name}/service.nix"))
+            ./containers/${name}/service.nix
+          ++ lib.optional
+            (builtins.pathExists (containerDir + "/${name}/vm-nogui.nix"))
+            ./containers/${name}/vm-nogui.nix;
         };
       };
 

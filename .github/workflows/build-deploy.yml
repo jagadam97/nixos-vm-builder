@@ -13,13 +13,29 @@ permissions:
   contents: write
 
 jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      containers: ${{ steps.discover.outputs.containers }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Discover containers
+        id: discover
+        run: |
+          # Find all container directories and format as JSON array
+          CONTAINERS=$(ls -d containers/*/ 2>/dev/null | xargs -n1 basename | grep -v '^common$' | jq -R -s -c 'split("\n") | map(select(length > 0))')
+          echo "containers=$CONTAINERS" >> $GITHUB_OUTPUT
+          echo "Found containers: $CONTAINERS"
+
   build-and-deploy:
+    needs: discover
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        container:
-          - influxdb-lxc
-            
+        container: ${{ fromJson(needs.discover.outputs.containers) }}
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -32,9 +48,9 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
-      - name: Build ${{ matrix.container }}
+      - name: Build ${{ matrix.container }}-lxc
         run: |
-          make ${{ matrix.container }}
+          make ${{ matrix.container }}-lxc
 
       - name: Prepare release info
         id: release
@@ -63,18 +79,19 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          TAG="${{ steps.release.outputs.tag }}"
-          if gh release view "${TAG}" &>/dev/null; then
-            echo "Deleting existing release ${TAG}..."
-            gh release delete "${TAG}" --yes
-          else
-            echo "No existing release for ${TAG}"
-          fi
-          # Delete remote tag if exists
-          git ls-remote --exit-code origin refs/tags/${TAG} && git push --delete origin ${TAG} || echo "Tag ${TAG} does not exist remotely"
-          # Delete local tag if exists
-          git tag -d ${TAG} 2>/dev/null || echo "Tag ${TAG} does not exist locally"
+
+          # Delete ALL previous releases for this container
+          CONTAINER="${{ steps.release.outputs.container }}"
+          echo "Deleting all previous releases for ${CONTAINER}..."
+          for old_release in $(gh release list --json tagName --jq '.[].tagName' | grep "^${CONTAINER}-v"); do
+            echo "Deleting release: ${old_release}"
+            gh release delete "${old_release}" --yes || true
+            git push --delete origin "${old_release}" 2>/dev/null || true
+            git tag -d "${old_release}" 2>/dev/null || true
+          done
+
           # Create new tag at current commit and push
+          TAG="${{ steps.release.outputs.tag }}"
           git tag ${TAG}
           git push origin ${TAG}
         env:
@@ -101,13 +118,17 @@ jobs:
       - name: Create versioned release (tag push)
         if: startsWith(github.ref, 'refs/tags/')
         run: |
-          TAG="${{ steps.release.outputs.tag }}"
-          if gh release view "${TAG}" &>/dev/null; then
-            echo "Deleting existing release ${TAG}..."
-            gh release delete "${TAG}" --yes
-          fi
-          # Delete remote tag if exists
-          git ls-remote --exit-code origin refs/tags/${TAG} && git push --delete origin ${TAG} || echo "Tag ${TAG} does not exist remotely"
+          CONTAINER="${{ steps.release.outputs.container }}"
+
+          # Delete ALL previous releases for this container
+          echo "Deleting all previous releases for ${CONTAINER}..."
+          for old_release in $(gh release list --json tagName --jq '.[].tagName' | grep "^${CONTAINER}-v"); do
+            echo "Deleting release: ${old_release}"
+            gh release delete "${old_release}" --yes || true
+            git push --delete origin "${old_release}" 2>/dev/null || true
+            git tag -d "${old_release}" 2>/dev/null || true
+          done
+
           gh release create "${{ github.ref_name }}" \
             result/tarball/*.tar.xz \
             --title "${{ steps.release.outputs.container }} ${{ steps.release.outputs.version }}" \
