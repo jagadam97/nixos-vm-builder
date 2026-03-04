@@ -1,0 +1,143 @@
+name: Check for Updates
+
+on:
+  schedule:
+    - cron: '0 6 * * *'  # Run daily at 6 AM UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  check-and-update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Get current versions
+        id: current
+        run: |
+          # Extract current versions from builds
+          echo "influxdb2=$(nix eval --raw .#influxdb-lxc.config.environment.etc."build-info.txt".text 2>/dev/null | grep -oP 'InfluxDB Version: \K[0-9.]+' || echo 'unknown')" >> $GITHUB_OUTPUT
+
+      - name: Check for flake updates
+        id: update
+        run: |
+          # Update flake.lock to get latest nixpkgs
+          nix flake update --commit-lock-file 2>/dev/null || true
+
+          # Check if flake.lock changed
+          if git diff --quiet flake.lock; then
+            echo "has_updates=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_updates=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Get new versions
+        if: steps.update.outputs.has_updates == 'true'
+        id: new
+        run: |
+          echo "influxdb2=$(nix eval --raw .#influxdb-lxc.config.environment.etc."build-info.txt".text 2>/dev/null | grep -oP 'InfluxDB Version: \K[0-9.]+' || echo 'unknown')" >> $GITHUB_OUTPUT
+
+      - name: Build all containers
+        if: steps.update.outputs.has_updates == 'true'
+        id: build
+        run: |
+          BUILD_STATUS=0
+          BUILD_RESULTS=""
+
+          # Build influxdb-lxc
+          echo "Building influxdb-lxc..."
+          if nix build .#influxdb-lxc --print-build-logs 2>&1 | tee build-influxdb.log; then
+            BUILD_RESULTS="${BUILD_RESULTS}✅ influxdb-lxc: built successfully\n"
+          else
+            BUILD_RESULTS="${BUILD_RESULTS}❌ influxdb-lxc: build failed\n"
+            BUILD_STATUS=1
+          fi
+
+          # Add more container builds here as needed
+
+          echo "build_status=$BUILD_STATUS" >> $GITHUB_OUTPUT
+          echo "build_results<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$BUILD_RESULTS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
+      - name: Create PR if builds pass
+        if: steps.update.outputs.has_updates == 'true' && steps.build.outputs.build_status == '0'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Commit flake.lock update
+          git add flake.lock
+          git commit -m "Update flake.lock - new container versions
+
+          ## Version Changes
+          - influxdb2: ${{ steps.current.outputs.influxdb2 }} -> ${{ steps.new.outputs.influxdb2 }}
+
+          ## Build Results
+          ${{ steps.build.outputs.build_results }}
+
+          All builds passed. Safe to merge."
+
+          BRANCH="update-flake-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "Update flake.lock - container version updates" \
+            --body "## Version Changes
+
+          - influxdb2: \`${{ steps.current.outputs.influxdb2 }}\` → \`${{ steps.new.outputs.influxdb2 }}\`
+
+          ## Build Results
+
+          ${{ steps.build.outputs.build_results }}
+
+          All builds have passed. This PR is safe to merge.
+
+          **Merging this PR will:**
+          1. Update container versions
+          2. Trigger a new release build
+          3. Create a new GitHub release"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build failed - revert and notify
+        if: steps.update.outputs.has_updates == 'true' && steps.build.outputs.build_status != '0'
+        run: |
+          echo "Build failed! Reverting changes."
+          git checkout flake.lock
+
+          # Create an issue to notify
+          gh issue create \
+            --title "Container build failed after flake update" \
+            --body "## Build Failure
+
+          The automated update check found new versions but builds failed.
+
+          ## Build Results
+
+          ${{ steps.build.outputs.build_results }}
+
+          ## Versions Attempted
+          - influxdb2: ${{ steps.current.outputs.influxdb2 }} -> ${{ steps.new.outputs.influxdb2 }}
+
+          Please investigate and fix manually." || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: No updates needed
+        if: steps.update.outputs.has_updates != 'true'
+        run: |
+          echo "No updates available. All containers are using the latest versions."
+          echo "Current versions:"
+          echo "- influxdb2: ${{ steps.current.outputs.influxdb2 }}"
