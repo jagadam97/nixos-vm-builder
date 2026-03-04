@@ -28,7 +28,7 @@
   networking = {
     useDHCP = false;
     useHostResolvConf = lib.mkForce false;
-    firewall.enable = true;
+    firewall.enable = false;
   };
 
   # Root user with hashed password (qwerty123)
