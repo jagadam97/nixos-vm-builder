@@ -20,13 +20,4 @@
 
   # Enable serial console
   boot.kernelParams = [ "console=ttyS0" ];
-
-  # Override build metadata
-  environment.etc."build-info.txt".text = lib.mkDefault ''
-    Type: influxdb-vm-nogui (headless VM for testing)
-    NixOS Version: ${config.system.nixos.version}
-    InfluxDB Version: ${pkgs.influxdb3.version}
-
-    To see metadata: cat /etc/build-info.txt
-  '';
 }
