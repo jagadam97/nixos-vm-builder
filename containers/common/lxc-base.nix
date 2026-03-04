@@ -34,8 +34,20 @@
   };
 
   # Enable getty on console for Proxmox web console
-  systemd.services."getty@tty1".enable = true;
-  systemd.services."getty@console".enable = true;
+  systemd.enableEmergencyMode = false;
+
+  # Create proper getty service for console
+  systemd.services.console-getty = {
+    description = "Getty on Console";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "systemd-logind.service" ];
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.util-linux}/bin/agetty --noclear --keep-baud console 115200,38400,9600 $TERM";
+      Restart = "always";
+      RestartSec = "1sec";
+    };
+  };
 
   # Network configuration - DHCP by default
   # Override by creating containers/<name>/network.nix
