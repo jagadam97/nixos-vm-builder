@@ -57,12 +57,12 @@ jobs:
         run: |
           cd nixos-infra
 
-          # Read current versions
-          CURRENT_VERSIONS=$(cat terranix/versions.nix | grep -E '^\s*\w+\s*=' | sed "s/\s*\(\w\+\)\s*=\s*\"\([^"]*\)\";.*/\1=\2/" | jq -R 'split("=") | {(.[0]): .[1]}' | jq -s 'add // {}')
+          # Read current versions using simpler grep/awk
+          CURRENT_VERSIONS=$(grep -E '^\s*\w+\s*=\s*"[^"]+";' terranix/versions.nix | awk -F'[=;"]' '{gsub(/^[ \t]+|[ \t]+$/, "", $1); print $1 "=" $3}' | jq -R 'split("=") | {(.[0]): .[1]}' | jq -s -c 'add // {}')
 
           # Merge with new versions
           NEW_VERSIONS='${{ steps.versions.outputs.versions_json }}'
-          MERGED=$(echo "$CURRENT_VERSIONS" "$NEW_VERSIONS" | jq -s '.[0] * .[1]')
+          MERGED=$(echo "$CURRENT_VERSIONS" "$NEW_VERSIONS" | jq -s -c '.[0] * .[1]')
 
           # Generate new versions.nix
           echo "# Container versions - auto-updated from nixos-vm-builder releases" > terranix/versions.nix
