@@ -1,8 +1,13 @@
 name: Check for Updates
 
 on:
+  workflow_run:
+    workflows: ["Build and Deploy LXC Containers"]
+    types:
+      - completed
+    branches: [ main ]
   schedule:
-    - cron: '0 6 * * *'  # Run daily at 6 AM UTC
+    - cron: '30 11 * * *'  # Run daily at 5 AM IST (11:30 UTC)
   workflow_dispatch:
 
 permissions:
@@ -22,11 +27,23 @@ jobs:
           extra_nix_config: |
             experimental-features = nix-command flakes
 
+      - name: Discover containers
+        id: discover
+        run: |
+          # Find all container directories (excluding common)
+          CONTAINERS=$(ls -d containers/*/ 2>/dev/null | xargs -n1 basename | grep -v '^common$' | tr '\n' ' ')
+          echo "containers=$CONTAINERS" >> $GITHUB_OUTPUT
+          echo "Found containers: $CONTAINERS"
+
       - name: Get current versions
         id: current
         run: |
-          # Extract current versions from builds
-          echo "influxdb2=$(nix eval --raw .#influxdb-lxc.config.environment.etc."build-info.txt".text 2>/dev/null | grep -oP 'InfluxDB Version: \K[0-9.]+' || echo 'unknown')" >> $GITHUB_OUTPUT
+          # Extract current versions from all containers
+          for container in ${{ steps.discover.outputs.containers }}; do
+            version=$(nix eval --raw ".#${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.]+' | head -1 || echo 'unknown')
+            echo "${container}=${version}" >> $GITHUB_OUTPUT
+            echo "${container}: ${version}"
+          done
 
       - name: Check for flake updates
         id: update
@@ -45,7 +62,11 @@ jobs:
         if: steps.update.outputs.has_updates == 'true'
         id: new
         run: |
-          echo "influxdb2=$(nix eval --raw .#influxdb-lxc.config.environment.etc."build-info.txt".text 2>/dev/null | grep -oP 'InfluxDB Version: \K[0-9.]+' || echo 'unknown')" >> $GITHUB_OUTPUT
+          for container in ${{ steps.discover.outputs.containers }}; do
+            version=$(nix eval --raw ".#${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.]+' | head -1 || echo 'unknown')
+            echo "${container}=${version}" >> $GITHUB_OUTPUT
+            echo "${container}: ${version}"
+          done
 
       - name: Build all containers
         if: steps.update.outputs.has_updates == 'true'
@@ -54,16 +75,16 @@ jobs:
           BUILD_STATUS=0
           BUILD_RESULTS=""
 
-          # Build influxdb-lxc
-          echo "Building influxdb-lxc..."
-          if nix build .#influxdb-lxc --print-build-logs 2>&1 | tee build-influxdb.log; then
-            BUILD_RESULTS="${BUILD_RESULTS}✅ influxdb-lxc: built successfully\n"
-          else
-            BUILD_RESULTS="${BUILD_RESULTS}❌ influxdb-lxc: build failed\n"
-            BUILD_STATUS=1
-          fi
-
-          # Add more container builds here as needed
+          # Build all discovered containers
+          for container in ${{ steps.discover.outputs.containers }}; do
+            echo "Building ${container}-lxc..."
+            if make "${container}-lxc" 2>&1 | tee "build-${container}.log"; then
+              BUILD_RESULTS="${BUILD_RESULTS}✅ ${container}-lxc: built successfully\n"
+            else
+              BUILD_RESULTS="${BUILD_RESULTS}❌ ${container}-lxc: build failed\n"
+              BUILD_STATUS=1
+            fi
+          done
 
           echo "build_status=$BUILD_STATUS" >> $GITHUB_OUTPUT
           echo "build_results<<EOF" >> $GITHUB_OUTPUT
@@ -76,12 +97,20 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # Build version changes list
+          VERSION_CHANGES=""
+          for container in ${{ steps.discover.outputs.containers }}; do
+            old_ver="${{ steps.current.outputs[container] }}"
+            new_ver="${{ steps.new.outputs[container] }}"
+            VERSION_CHANGES="${VERSION_CHANGES}- ${container}: ${old_ver} -> ${new_ver}\n"
+          done
+
           # Commit flake.lock update
           git add flake.lock
           git commit -m "Update flake.lock - new container versions
 
           ## Version Changes
-          - influxdb2: ${{ steps.current.outputs.influxdb2 }} -> ${{ steps.new.outputs.influxdb2 }}
+          ${VERSION_CHANGES}
 
           ## Build Results
           ${{ steps.build.outputs.build_results }}
@@ -96,7 +125,7 @@ jobs:
             --title "Update flake.lock - container version updates" \
             --body "## Version Changes
 
-          - influxdb2: \`${{ steps.current.outputs.influxdb2 }}\` → \`${{ steps.new.outputs.influxdb2 }}\`
+          ${VERSION_CHANGES}
 
           ## Build Results
 
@@ -117,6 +146,14 @@ jobs:
           echo "Build failed! Reverting changes."
           git checkout flake.lock
 
+          # Build version changes list
+          VERSION_CHANGES=""
+          for container in ${{ steps.discover.outputs.containers }}; do
+            old_ver="${{ steps.current.outputs[container] }}"
+            new_ver="${{ steps.new.outputs[container] }}"
+            VERSION_CHANGES="${VERSION_CHANGES}- ${container}: ${old_ver} -> ${new_ver}\n"
+          done
+
           # Create an issue to notify
           gh issue create \
             --title "Container build failed after flake update" \
@@ -129,7 +166,7 @@ jobs:
           ${{ steps.build.outputs.build_results }}
 
           ## Versions Attempted
-          - influxdb2: ${{ steps.current.outputs.influxdb2 }} -> ${{ steps.new.outputs.influxdb2 }}
+          ${VERSION_CHANGES}
 
           Please investigate and fix manually." || true
         env:
@@ -140,4 +177,6 @@ jobs:
         run: |
           echo "No updates available. All containers are using the latest versions."
           echo "Current versions:"
-          echo "- influxdb2: ${{ steps.current.outputs.influxdb2 }}"
+          for container in ${{ steps.discover.outputs.containers }}; do
+            echo "- ${container}: ${{ steps.current.outputs[container] }}"
+          done

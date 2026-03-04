@@ -1,4 +1,4 @@
-{ pkgs, platform, ... }:
+{ pkgs, lib, config, name, platform, ... }:
 
 let
   isLxc = platform == "lxc";
@@ -11,6 +11,9 @@ in
 
   # Basic system configuration
   system.stateVersion = "26.05";
+
+  # Container hostname - derived from folder name
+  networking.hostName = name;
 
   # Enable nix flakes and nix-command
   nix.settings.experimental-features = [ "nix-command" "flakes" ];

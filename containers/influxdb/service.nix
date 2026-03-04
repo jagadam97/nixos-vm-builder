@@ -1,19 +1,7 @@
-{
-  config,
-  pkgs,
-  lib,
-  modulesPath,
-  platform,
-  ...
-}:
+{ config, pkgs, lib, name, platform, ... }:
 
 {
-  imports = [
-    ../common/common.nix
-  ];
-
-  # Container hostname
-  networking.hostName = "influxdb";
+  # Firewall
   networking.firewall.allowedTCPPorts = [
     8086 # InfluxDB HTTP API
   ];
@@ -57,15 +45,15 @@
     };
   };
 
-  # Minimal essential packages for container
+  # Packages
   environment.systemPackages = with pkgs; [
     influxdb2
     influxdb2-cli
   ];
 
-  # Build metadata accessible inside container
-  environment.etc."build-info.txt".text = lib.mkDefault ''
-    Type: influxdb-${platform}
+  # Build metadata
+  environment.etc."build-info.txt".text = lib.mkForce ''
+    Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
     InfluxDB Version: ${pkgs.influxdb2-server.version}
   '';

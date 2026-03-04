@@ -1,4 +1,4 @@
-{ pkgs, ... }:
+{ pkgs, name,... }:
 {
-  image.baseName = "influxdb-v${pkgs.influxdb2-server.version}";
+  image.baseName = "${name}-v${pkgs.influxdb2-server.version}";
 }
