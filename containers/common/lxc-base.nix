@@ -13,14 +13,16 @@
   boot.isContainer = true;
   boot.initrd.enable = false;
 
-  # Symlink NixOS binaries into /usr/local/bin so they're available via pct enter / lxc-attach
-  # (lxc-attach hardcodes PATH to /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin)
+  # Symlink NixOS binaries into /usr/bin so they're available via pct enter / lxc-attach
+  # (lxc-attach hardcodes PATH to /sbin:/bin:/usr/sbin:/usr/bin)
+  # Also replace /bin/sh with bash for a better shell experience
   system.activationScripts.lxcPath = {
     text = ''
-      mkdir -p /usr/local/bin
       for bin in /run/current-system/sw/bin/*; do
-        ln -sfn "$bin" /usr/local/bin/
+        ln -sfn "$bin" /usr/bin/
       done
+      mkdir -p /bin
+      ln -sfn /run/current-system/sw/bin/bash /bin/sh
     '';
   };
 
