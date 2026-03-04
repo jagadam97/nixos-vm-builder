@@ -18,7 +18,9 @@
   system.activationScripts.lxcPath = {
     text = ''
       mkdir -p /usr/local/bin
-      ln -sfn /run/current-system/sw/bin/* /usr/local/bin/
+      for bin in /run/current-system/sw/bin/*; do
+        ln -sfn "$bin" /usr/local/bin/
+      done
     '';
   };
 
