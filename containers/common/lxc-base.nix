@@ -36,9 +36,9 @@
   # Enable getty on console for Proxmox web console
   systemd.enableEmergencyMode = false;
 
-  # Create proper getty service for console
-  systemd.services.console-getty = {
-    description = "Getty on Console";
+  # Create proper getty service for console (using unique name to avoid NixOS LXC module overrides)
+  systemd.services.lxc-web-console = {
+    description = "Getty on Console for Proxmox";
     wantedBy = [ "multi-user.target" ];
     after = [ "systemd-logind.service" ];
     serviceConfig = {
