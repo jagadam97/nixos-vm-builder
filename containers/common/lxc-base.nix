@@ -31,6 +31,12 @@
     firewall.enable = false;
   };
 
+  # Enable SSH for remote access
+  services.openssh = {
+    enable = true;
+    settings.PermitRootLogin = "yes";
+  };
+
   # Root user with hashed password (qwerty123)
   # To generate a new hash: mkpasswd -m sha-512
   users.users.root.hashedPassword = "$6$G4Owc0wBptUsb0TD$nNhdRoOaPvFqIS03q3Rv9O/OfH9llDsZSDWg9jGgya4VYvUbzCY3yDpSCfYcDu/C5zzBJmh62gLC4O6YNatac0";
