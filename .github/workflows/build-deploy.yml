@@ -72,6 +72,11 @@ jobs:
           fi
           # Delete remote tag if exists
           git ls-remote --exit-code origin refs/tags/${TAG} && git push --delete origin ${TAG} || echo "Tag ${TAG} does not exist remotely"
+          # Delete local tag if exists
+          git tag -d ${TAG} 2>/dev/null || echo "Tag ${TAG} does not exist locally"
+          # Create new tag at current commit and push
+          git tag ${TAG}
+          git push origin ${TAG}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
