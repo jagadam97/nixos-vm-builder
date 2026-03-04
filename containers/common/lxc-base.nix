@@ -14,9 +14,7 @@
   boot.initrd.enable = false;
 
   # Set PATH in systemd's default environment so lxc-attach / pct enter picks it up
-  systemd.extraConfig = ''
-    DefaultEnvironment="PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/run/wrappers/bin:/usr/bin:/bin"
-  '';
+  systemd.settings.Manager.DefaultEnvironment = "PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/run/wrappers/bin:/usr/bin:/bin";
 
   # Network configuration
   networking = {
