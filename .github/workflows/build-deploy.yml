@@ -62,10 +62,12 @@ jobs:
           TAG="${{ steps.release.outputs.tag }}"
           if gh release view "${TAG}" &>/dev/null; then
             echo "Deleting existing release ${TAG}..."
-            gh release delete "${TAG}" --yes --cleanup-tag
+            gh release delete "${TAG}" --yes
           else
             echo "No existing release for ${TAG}"
           fi
+          # Delete remote tag if exists
+          git ls-remote --exit-code origin refs/tags/${TAG} && git push --delete origin ${TAG} || echo "Tag ${TAG} does not exist remotely"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
