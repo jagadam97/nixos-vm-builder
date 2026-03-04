@@ -23,6 +23,8 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Install Nix
         uses: cachix/install-nix-action@v27
@@ -59,6 +61,8 @@ jobs:
       - name: Delete existing release if present
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
           TAG="${{ steps.release.outputs.tag }}"
           if gh release view "${TAG}" &>/dev/null; then
             echo "Deleting existing release ${TAG}..."
@@ -95,8 +99,10 @@ jobs:
           TAG="${{ steps.release.outputs.tag }}"
           if gh release view "${TAG}" &>/dev/null; then
             echo "Deleting existing release ${TAG}..."
-            gh release delete "${TAG}" --yes --cleanup-tag
+            gh release delete "${TAG}" --yes
           fi
+          # Delete remote tag if exists
+          git ls-remote --exit-code origin refs/tags/${TAG} && git push --delete origin ${TAG} || echo "Tag ${TAG} does not exist remotely"
           gh release create "${{ github.ref_name }}" \
             result/tarball/*.tar.xz \
             --title "${{ steps.release.outputs.container }} ${{ steps.release.outputs.version }}" \
