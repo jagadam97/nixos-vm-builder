@@ -1,0 +1,107 @@
+name: Update Infrastructure Versions
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-versions:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout vm-builder
+        uses: actions/checkout@v4
+
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+
+      - name: Extract versions from releases
+        id: versions
+        run: |
+          # Get all releases and extract container names with versions
+          VERSIONS_JSON="{}"
+
+          for release in $(gh release list --limit 50 --json tagName --jq '.[].tagName'); do
+            # Format: containername-v1.2.3
+            if [[ "$release" =~ ^(.+)-(v[0-9].*)$ ]]; then
+              container="${BASH_REMATCH[1]}"
+              version="${BASH_REMATCH[2]}"
+              VERSIONS_JSON=$(echo "$VERSIONS_JSON" | jq --arg c "$container" --arg v "$version" '. + {($c): $v}')
+            fi
+          done
+
+          echo "versions<<EOF"
+          echo "$VERSIONS_JSON"
+          echo "EOF"
+          echo "versions_json=$VERSIONS_JSON" >> $GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Checkout nixos-infra
+        uses: actions/checkout@v4
+        with:
+          repository: jagadam97/nixos-infra
+          token: ${{ secrets.INFRA_REPO_TOKEN }}
+          path: nixos-infra
+
+      - name: Update versions.nix
+        run: |
+          cd nixos-infra
+
+          # Read current versions
+          CURRENT_VERSIONS=$(cat terranix/versions.nix | grep -E '^\s*\w+\s*=' | sed "s/\s*\(\w\+\)\s*=\s*\"\([^"]*\)\";.*/\1=\2/" | jq -R 'split("=") | {(.[0]): .[1]}' | jq -s 'add // {}')
+
+          # Merge with new versions
+          NEW_VERSIONS='${{ steps.versions.outputs.versions_json }}'
+          MERGED=$(echo "$CURRENT_VERSIONS" "$NEW_VERSIONS" | jq -s '.[0] * .[1]')
+
+          # Generate new versions.nix
+          echo "# Container versions - auto-updated from nixos-vm-builder releases" > terranix/versions.nix
+          echo "# Last updated: $(date -u +%Y-%m-%d\ %H:%M:%S\ UTC)" >> terranix/versions.nix
+          echo "{" >> terranix/versions.nix
+          echo "$MERGED" | jq -r 'to_entries | .[] | "  \(.key) = \"\(.value)\";"' >> terranix/versions.nix
+          echo "}" >> terranix/versions.nix
+
+          cat terranix/versions.nix
+
+      - name: Check for changes
+        id: changes
+        run: |
+          cd nixos-infra
+          if git diff --quiet terranix/versions.nix; then
+            echo "has_changes=false" >> $GITHUB_OUTPUT
+          else
+            echo "has_changes=true" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create Pull Request
+        if: steps.changes.outputs.has_changes == 'true'
+        run: |
+          cd nixos-infra
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          BRANCH="auto-update-versions-$(date +%Y%m%d-%H%M%S)"
+          git checkout -b "$BRANCH"
+          git add terranix/versions.nix
+          git commit -m "Update container versions from nixos-vm-builder
+
+          Auto-generated from releases in jagadam97/nixos-vm-builder"
+
+          git push -u origin "$BRANCH"
+
+          gh pr create \
+            --title "Update container versions" \
+            --body "Automatically updated from nixos-vm-builder releases.
+
+          Check the changes and merge to apply new container versions." \
+            --base main
+        env:
+          GH_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
