@@ -40,10 +40,9 @@ jobs:
             fi
           done
 
-          echo "versions<<EOF"
-          echo "$VERSIONS_JSON"
-          echo "EOF"
+          # Output as single line JSON
           echo "versions_json=$VERSIONS_JSON" >> $GITHUB_OUTPUT
+          echo "Found versions: $VERSIONS_JSON"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

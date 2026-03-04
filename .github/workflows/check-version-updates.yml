@@ -35,16 +35,6 @@ jobs:
           echo "containers=$CONTAINERS" >> $GITHUB_OUTPUT
           echo "Found containers: $CONTAINERS"
 
-      - name: Get current versions
-        id: current
-        run: |
-          # Extract current versions from all containers
-          for container in ${{ steps.discover.outputs.containers }}; do
-            version=$(nix eval --raw ".#${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.]+' | head -1 || echo 'unknown')
-            echo "${container}=${version}" >> $GITHUB_OUTPUT
-            echo "${container}: ${version}"
-          done
-
       - name: Check for flake updates
         id: update
         run: |
@@ -58,28 +48,27 @@ jobs:
             echo "has_updates=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Get new versions
-        if: steps.update.outputs.has_updates == 'true'
-        id: new
-        run: |
-          for container in ${{ steps.discover.outputs.containers }}; do
-            version=$(nix eval --raw ".#${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.]+' | head -1 || echo 'unknown')
-            echo "${container}=${version}" >> $GITHUB_OUTPUT
-            echo "${container}: ${version}"
-          done
-
-      - name: Build all containers
+      - name: Build all containers and collect versions
         if: steps.update.outputs.has_updates == 'true'
         id: build
         run: |
           BUILD_STATUS=0
           BUILD_RESULTS=""
+          VERSION_CHANGES=""
 
           # Build all discovered containers
           for container in ${{ steps.discover.outputs.containers }}; do
             echo "Building ${container}-lxc..."
+
+            # Get current version before build
+            OLD_VERSION=$(nix eval --raw ".#${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.]+' | head -1 || echo 'unknown')
+
             if make "${container}-lxc" 2>&1 | tee "build-${container}.log"; then
               BUILD_RESULTS="${BUILD_RESULTS}✅ ${container}-lxc: built successfully\n"
+
+              # Get new version after build
+              NEW_VERSION=$(nix eval --raw ".#${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.]+' | head -1 || echo 'unknown')
+              VERSION_CHANGES="${VERSION_CHANGES}- ${container}: ${OLD_VERSION} -> ${NEW_VERSION}\n"
             else
               BUILD_RESULTS="${BUILD_RESULTS}❌ ${container}-lxc: build failed\n"
               BUILD_STATUS=1
@@ -90,6 +79,9 @@ jobs:
           echo "build_results<<EOF" >> $GITHUB_OUTPUT
           echo -e "$BUILD_RESULTS" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
+          echo "version_changes<<EOF" >> $GITHUB_OUTPUT
+          echo -e "$VERSION_CHANGES" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
       - name: Create PR if builds pass
         if: steps.update.outputs.has_updates == 'true' && steps.build.outputs.build_status == '0'
@@ -97,20 +89,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          # Build version changes list
-          VERSION_CHANGES=""
-          for container in ${{ steps.discover.outputs.containers }}; do
-            old_ver="${{ steps.current.outputs[container] }}"
-            new_ver="${{ steps.new.outputs[container] }}"
-            VERSION_CHANGES="${VERSION_CHANGES}- ${container}: ${old_ver} -> ${new_ver}\n"
-          done
-
           # Commit flake.lock update
           git add flake.lock
           git commit -m "Update flake.lock - new container versions
 
           ## Version Changes
-          ${VERSION_CHANGES}
+          ${{ steps.build.outputs.version_changes }}
 
           ## Build Results
           ${{ steps.build.outputs.build_results }}
@@ -125,7 +109,7 @@ jobs:
             --title "Update flake.lock - container version updates" \
             --body "## Version Changes
 
-          ${VERSION_CHANGES}
+          ${{ steps.build.outputs.version_changes }}
 
           ## Build Results
 
@@ -146,14 +130,6 @@ jobs:
           echo "Build failed! Reverting changes."
           git checkout flake.lock
 
-          # Build version changes list
-          VERSION_CHANGES=""
-          for container in ${{ steps.discover.outputs.containers }}; do
-            old_ver="${{ steps.current.outputs[container] }}"
-            new_ver="${{ steps.new.outputs[container] }}"
-            VERSION_CHANGES="${VERSION_CHANGES}- ${container}: ${old_ver} -> ${new_ver}\n"
-          done
-
           # Create an issue to notify
           gh issue create \
             --title "Container build failed after flake update" \
@@ -166,7 +142,8 @@ jobs:
           ${{ steps.build.outputs.build_results }}
 
           ## Versions Attempted
-          ${VERSION_CHANGES}
+
+          ${{ steps.build.outputs.version_changes }}
 
           Please investigate and fix manually." || true
         env:
@@ -176,7 +153,7 @@ jobs:
         if: steps.update.outputs.has_updates != 'true'
         run: |
           echo "No updates available. All containers are using the latest versions."
-          echo "Current versions:"
           for container in ${{ steps.discover.outputs.containers }}; do
-            echo "- ${container}: ${{ steps.current.outputs[container] }}"
+            VERSION=$(nix eval --raw ".#${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.]+' | head -1 || echo 'unknown')
+            echo "- ${container}: ${VERSION}"
           done
