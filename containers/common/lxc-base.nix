@@ -1,4 +1,4 @@
-{ pkgs, modulesPath, ... }:
+{ pkgs, lib, modulesPath, ... }:
 
 {
   # Basic system configuration
@@ -12,12 +12,16 @@
   # LXC container specific settings
   boot.isContainer = true;
   boot.initrd.enable = false;
-  systemd.package = pkgs.systemd;
+
+  # Set PATH in systemd's default environment so lxc-attach / pct enter picks it up
+  systemd.extraConfig = ''
+    DefaultEnvironment="PATH=/run/current-system/sw/bin:/nix/var/nix/profiles/default/bin:/run/wrappers/bin:/usr/bin:/bin"
+  '';
 
   # Network configuration
   networking = {
     useDHCP = false;
-    useHostResolvConf = true;
+    useHostResolvConf = lib.mkForce false;
     firewall.enable = true;
   };
 
