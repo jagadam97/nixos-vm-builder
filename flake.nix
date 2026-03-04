@@ -23,8 +23,8 @@
           inherit system;
           specialArgs = { platform = "lxc"; name = name; };
           modules = [
-            # Base template (from repo root)
-            ./base.nix
+            # Common base configuration
+            ./common/common.nix
             # Container-specific config (auto-discovered)
           ] ++ lib.optional
             (builtins.pathExists (containerDir + "/${name}/service.nix"))
@@ -42,7 +42,7 @@
           inherit system;
           specialArgs = { platform = "vm"; name = name; };
           modules = [
-            ./base.nix
+            ./common/common.nix
           ] ++ lib.optional
             (builtins.pathExists (containerDir + "/${name}/service.nix"))
             ./containers/${name}/service.nix

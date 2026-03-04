@@ -14,7 +14,7 @@
 
     # Port forwarding for testing
     forwardPorts = [
-      { from = "host"; host.port = 8086; guest.port = 8086; } # InfluxDB HTTP API
+      { from = "host"; host.port = 8086; guest.port = 8086; }
     ];
   };
 

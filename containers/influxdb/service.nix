@@ -1,4 +1,4 @@
-{ config, pkgs, lib, platform, ... }:
+{ config, pkgs, lib, name, platform, ... }:
 
 {
   # Firewall
@@ -53,7 +53,7 @@
 
   # Build metadata
   environment.etc."build-info.txt".text = lib.mkForce ''
-    Type: influxdb-${platform}
+    Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
     InfluxDB Version: ${pkgs.influxdb2-server.version}
   '';

@@ -1,7 +1,10 @@
 name: Update Infrastructure Versions
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Build and Deploy LXC Containers"]
+    types:
+      - completed
     branches: [ main ]
   workflow_dispatch:
 

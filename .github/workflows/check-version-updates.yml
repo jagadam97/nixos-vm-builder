@@ -1,6 +1,11 @@
 name: Check for Updates
 
 on:
+  workflow_run:
+    workflows: ["Build and Deploy LXC Containers"]
+    types:
+      - completed
+    branches: [ main ]
   schedule:
     - cron: '30 11 * * *'  # Run daily at 5 AM IST (11:30 UTC)
   workflow_dispatch:
