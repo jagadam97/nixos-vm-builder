@@ -77,7 +77,7 @@ jobs:
           MERGED=$(echo "$CURRENT_VERSIONS" "$NEW_VERSIONS" | jq -s -c '.[0] * .[1]')
 
           # Generate new versions.nix
-          echo "{" >> terranix/versions.nix
+          echo "{" > terranix/versions.nix
           echo "$MERGED" | jq -r 'to_entries | .[] | "  \(.key) = \"\(.value)\";"' >> terranix/versions.nix
           echo "}" >> terranix/versions.nix
 
