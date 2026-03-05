@@ -7,7 +7,7 @@ on:
       - completed
     branches: [ main ]
   schedule:
-    - cron: '30 11 * * *'  # Run daily at 5 AM IST (11:30 UTC)
+    - cron: '30 23 * * *'  # Run daily at 5 AM IST (23:30 UTC)
   workflow_dispatch:
 
 permissions:
