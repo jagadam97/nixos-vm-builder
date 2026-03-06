@@ -61,7 +61,8 @@ jobs:
           SIZE=$(du -h "${TARBALL}" | cut -f1)
 
           # Extract version and container name from filename (<container>-v<version>.tar.xz)
-          VERSION=$(echo "$FILENAME" | sed -n 's/.*-\(v[0-9][^.]*\.[^.]*\.[^.]*\)\.tar\.xz/\1/p')
+          # Version can contain dots, underscores, and dashes (e.g., v10.11.6_7.1.2-2)
+          VERSION=$(echo "$FILENAME" | sed -n 's/.*-\(v[0-9][^[:space:]]*\)\.tar\.xz/\1/p')
           CONTAINER=$(echo "$FILENAME" | sed -n 's/\(.*\)-v[0-9].*\.tar\.xz/\1/p')
           TAG="${CONTAINER}-${VERSION}"
 
