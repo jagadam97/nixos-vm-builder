@@ -71,16 +71,11 @@
       RestartSec = "5";
     };
   };
-  nixpkgs.config.permittedInsecurePackages = [
-    "intel-media-sdk-23.2.2"
-  ];
-
   # Intel iGPU hardware transcoding support (Coffee Lake / UHD 630)
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
       intel-media-driver   # The modern VA-API driver
-      intel-media-sdk      # REQUIRED: The legacy QSV bridge for UHD 630
       vpl-gpu-rt           # The modern QSV runtime
       intel-compute-runtime # For HDR tone mapping
     ];
