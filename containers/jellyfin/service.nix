@@ -71,6 +71,9 @@
       RestartSec = "5";
     };
   };
+  nixpkgs.config.permittedInsecurePackages = [
+    "intel-media-sdk-23.2.2"
+  ];
 
   # Intel iGPU hardware transcoding support (Coffee Lake / UHD 630)
   hardware.graphics = {
