@@ -30,8 +30,12 @@
     extraGroups = [ "video" "render" ];
   };
   users.groups.jellyfin = { };
-  users.groups.video = { };
-  users.groups.render = { };
+  users.groups.video = {
+    gid = 26;
+  };
+  users.groups.render = {
+    gid = 303;
+   };
 
   # Enable Jellyfin service
   services.jellyfin = {
@@ -47,6 +51,8 @@
 
   # Fix Jellyfin crash - ensure SSL certs and restart on failure
   systemd.services.jellyfin = {
+    # This ensures Jellyfin can find the ICU libraries and GPU drivers
+    path = with pkgs; [ icu intel-media-driver vpl-gpu-rt ];
     environment = {
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "0";
@@ -65,6 +71,8 @@
     extraPackages = with pkgs; [
       intel-media-driver  # For Broadwell+ (your UHD 630)
       libvdpau-va-gl      # VDPAU wrapper for VAAPI
+      vpl-gpu-rt          # REQUIRED for QSV (Fixes MFX session errors)
+      intel-compute-runtime # Optional: for HDR tone mapping
     ];
   };
 
@@ -81,14 +89,13 @@
   # Fix Intel iGPU device permissions in LXC container
   # (Proxmox maps host render group to container input group)
   systemd.services.jellyfin-gpu-perms = {
-    description = "Fix Intel GPU permissions for Jellyfin";
+    description = "Ensure jellyfin can access the GPU";
     wantedBy = [ "multi-user.target" ];
     before = [ "jellyfin.service" ];
     after = [ "systemd-tmpfiles-setup.service" ];
     serviceConfig = {
       Type = "oneshot";
-      RemainAfterExit = true;
-      ExecStart = "${pkgs.bash}/bin/bash -c 'chown root:video /dev/dri/card* 2>/dev/null || true; chgrp render /dev/dri/renderD* 2>/dev/null || chown root:input /dev/dri/renderD* 2>/dev/null || true; chmod 660 /dev/dri/* 2>/dev/null || true'";
+      ExecStart = "${pkgs.bash}/bin/bash -c 'chgrp render /dev/dri/renderD128 && chgrp video /dev/dri/card1 && chmod 660 /dev/dri/*'";
     };
   };
 
