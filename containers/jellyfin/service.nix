@@ -11,6 +11,10 @@
     7359  # Jellyfin service discovery
   ];
 
+  boot.kernelParams = [
+    "i915.enable_guc=2"
+  ];
+
   # Jellyfin directories
   systemd.tmpfiles.rules = [
     "d /var/lib/jellyfin 0755 jellyfin jellyfin -"
@@ -68,12 +72,12 @@
       RestartSec = "5";
     };
   };
+
   # Intel iGPU hardware transcoding support (Coffee Lake / UHD 630)
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
       intel-media-driver   # The modern VA-API driver
-      vpl-gpu-rt           # The modern QSV runtime
       intel-compute-runtime # For HDR tone mapping
     ];
   };
