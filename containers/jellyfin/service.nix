@@ -49,8 +49,9 @@
   systemd.services.jellyfin = {
     environment = {
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
-      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "1";
+      DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "0";
       DOTNET_CLI_TELEMETRY_OPTOUT = "1";
+      CLR_ICU_PATH = "${pkgs.icu}/lib";
     };
     serviceConfig = {
       Restart = "on-failure";
@@ -74,6 +75,7 @@
     jellyfin-ffmpeg
     intel-gpu-tools
     libva-utils
+    icu
   ];
 
   # Fix Intel iGPU device permissions in LXC container
