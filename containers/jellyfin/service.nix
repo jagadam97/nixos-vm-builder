@@ -77,8 +77,9 @@
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver   # The modern VA-API driver
+      intel-media-driver    # The modern VA-API driver
       intel-compute-runtime # For HDR tone mapping
+      vpl-gpu-rt            # Modern QSV runtime 
     ];
   };
 
