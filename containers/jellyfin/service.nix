@@ -59,7 +59,7 @@
     ];
     environment = {
       LIBVA_DRIVER_NAME = "iHD";
-      LD_LIBRARY_PATH = "/run/opengl-driver/lib:/run/current-system/sw/lib"
+      LD_LIBRARY_PATH = "/run/opengl-driver/lib:/run/current-system/sw/lib";
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "0";
       CLR_ICU_PATH = "${pkgs.icu}/lib";
