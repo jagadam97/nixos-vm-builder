@@ -54,9 +54,16 @@
     # This ensures Jellyfin can find the ICU libraries and GPU drivers
     path = with pkgs; [ icu intel-media-driver vpl-gpu-rt ];
     environment = {
+      LIBVA_DRIVER_NAME = "iHD";
+      ONEVPL_SEARCH_PATH = "${pkgs.vpl-gpu-rt}/lib/vpl"
+      LD_LIBRARY_PATH = lib.makeLibraryPath (with pkgs; [
+          intel-media-driver
+          vpl-gpu-rt
+          libvpl
+          intel-compute-runtime # for HDR tone mapping
+        ]);
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "0";
-      DOTNET_CLI_TELEMETRY_OPTOUT = "1";
       CLR_ICU_PATH = "${pkgs.icu}/lib";
     };
     serviceConfig = {
