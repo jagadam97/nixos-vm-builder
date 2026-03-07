@@ -52,10 +52,10 @@
   # Fix Jellyfin crash - ensure SSL certs and restart on failure
   systemd.services.jellyfin = {
     # This ensures Jellyfin can find the ICU libraries and GPU drivers
-    path = with pkgs; [ icu intel-media-driver vpl-gpu-rt ];
+    path = with pkgs; [ icu intel-media-driver vpl-gpu-rt libvpl ];
     environment = {
       LIBVA_DRIVER_NAME = "iHD";
-      ONEVPL_SEARCH_PATH = "${pkgs.vpl-gpu-rt}/lib/vpl"
+      ONEVPL_SEARCH_PATH = "${pkgs.vpl-gpu-rt}/lib/vpl";
       LD_LIBRARY_PATH = lib.makeLibraryPath (with pkgs; [
           intel-media-driver
           vpl-gpu-rt
