@@ -76,10 +76,10 @@
   hardware.graphics = {
     enable = true;
     extraPackages = with pkgs; [
-      intel-media-driver  # For Broadwell+ (your UHD 630)
-      libvdpau-va-gl      # VDPAU wrapper for VAAPI
-      vpl-gpu-rt          # REQUIRED for QSV (Fixes MFX session errors)
-      intel-compute-runtime # Optional: for HDR tone mapping
+      intel-media-driver   # The modern VA-API driver
+      intel-media-sdk      # REQUIRED: The legacy QSV bridge for UHD 630
+      vpl-gpu-rt           # The modern QSV runtime
+      intel-compute-runtime # For HDR tone mapping
     ];
   };
 
