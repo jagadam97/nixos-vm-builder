@@ -59,14 +59,11 @@
     ];
     environment = {
       LIBVA_DRIVER_NAME = "iHD";
-      ONEVPL_SEARCH_PATH = "${pkgs.vpl-gpu-rt}/lib/vpl";
-      LD_LIBRARY_PATH = lib.makeLibraryPath (with pkgs; [
-          intel-media-driver
-          intel-compute-runtime # for HDR tone mapping
-        ]);
+      LD_LIBRARY_PATH = "/run/opengl-driver/lib:/run/current-system/sw/lib"
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "0";
       CLR_ICU_PATH = "${pkgs.icu}/lib";
+      ONEVPL_SEARCH_PATH = "/run/opengl-driver/lib/vpl"
     };
     serviceConfig = {
       Restart = "on-failure";
