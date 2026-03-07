@@ -36,8 +36,6 @@
   users.groups.render = {
     gid = 303;
    };
-
-  # Enable Jellyfin service
   services.jellyfin = {
     enable = true;
     openFirewall = true;
