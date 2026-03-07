@@ -63,7 +63,7 @@
       SSL_CERT_FILE = "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt";
       DOTNET_SYSTEM_GLOBALIZATION_INVARIANT = "0";
       CLR_ICU_PATH = "${pkgs.icu}/lib";
-      ONEVPL_SEARCH_PATH = "/run/opengl-driver/lib/vpl"
+      ONEVPL_SEARCH_PATH = "/run/opengl-driver/lib/vpl";
     };
     serviceConfig = {
       Restart = "on-failure";
