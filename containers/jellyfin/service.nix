@@ -39,7 +39,7 @@
     openFirewall = true;
     user = "jellyfin";
     group = "jellyfin";
-    dataDir = "/mnt/data/jellyfin";
+    dataDir = "/var/lib/jellyfin/data";
     configDir = "/var/lib/jellyfin/config";
     cacheDir = "/var/lib/jellyfin/cache";
     logDir = "/var/log/jellyfin";
