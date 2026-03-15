@@ -20,11 +20,11 @@
   # qBittorrent directories
   # /var/lib/qbittorrent is bind-mounted from the Proxmox host
   # (/mnt/pve/bx500/qbittorrent) for persistent config across container rebuilds.
-  # /mnt/bx1000 and /mnt/hd4000 are full disk bind-mounts for download storage.
+  # /mnt/bx1000/downloads and /mnt/hd4000/downloads are bind-mounted download dirs.
   systemd.tmpfiles.rules = [
     "d /var/lib/qbittorrent 0755 qbittorrent qbittorrent -"
-    "d /mnt/bx1000 0755 qbittorrent qbittorrent -"
-    "d /mnt/hd4000 0755 qbittorrent qbittorrent -"
+    "d /mnt/bx1000/downloads 0755 qbittorrent qbittorrent -"
+    "d /mnt/hd4000/downloads 0755 qbittorrent qbittorrent -"
   ];
 
   # Create qbittorrent user and group
@@ -56,8 +56,8 @@
       ProtectHome = true;
       ReadWritePaths = [
         "/var/lib/qbittorrent"
-        "/mnt/bx1000"
-        "/mnt/hd4000"
+        "/mnt/bx1000/downloads"
+        "/mnt/hd4000/downloads"
       ];
     };
   };
