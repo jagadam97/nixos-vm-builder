@@ -23,6 +23,8 @@
   # /mnt/bx1000/downloads and /mnt/hd4000/downloads are bind-mounted download dirs.
   systemd.tmpfiles.rules = [
     "d /var/lib/qbittorrent 0755 qbittorrent qbittorrent -"
+    "d /var/lib/qbittorrent/qBittorrent 0755 qbittorrent qbittorrent -"
+    "d /var/lib/qbittorrent/qBittorrent/cache 0755 qbittorrent qbittorrent -"
     "d /mnt/bx1000/downloads 0755 qbittorrent qbittorrent -"
     "d /mnt/hd4000/downloads 0755 qbittorrent qbittorrent -"
   ];
