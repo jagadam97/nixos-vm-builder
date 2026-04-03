@@ -1,10 +1,6 @@
 { config, pkgs, lib, name, platform, ... }:
 
 {
-  # Firewall
-  networking.firewall.allowedTCPPorts = [
-    8086 # InfluxDB HTTP API
-  ];
 
   # InfluxDB directories
   systemd.tmpfiles.rules = [

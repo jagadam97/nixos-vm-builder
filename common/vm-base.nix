@@ -8,6 +8,6 @@
   # Network configuration
   networking = {
     useDHCP = true;
-    firewall.enable = true;
+    firewall.enable = false;
   };
 }

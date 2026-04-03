@@ -8,15 +8,9 @@
 }:
 
 {
-  # Firewall
-  networking.firewall.allowedTCPPorts = [
-    8080 # qBittorrent Web UI
-    6881 # qBittorrent BitTorrent
+  imports = [
+    ./vuetorrent-backend.nix
   ];
-  networking.firewall.allowedUDPPorts = [
-    6881 # qBittorrent BitTorrent
-  ];
-
   # qBittorrent directories
   # /var/lib/qbittorrent is bind-mounted from the Proxmox host
   # (/mnt/pve/bx500/qbittorrent) for persistent config across container rebuilds.
@@ -63,6 +57,12 @@
         "/mnt/hd4000/downloads"
       ];
     };
+  };
+
+  services.vuetorrent-backend = {
+    enable = true;
+    port = 8081;
+    openFirewall = true;
   };
 
   # Packages
