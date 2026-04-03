@@ -26,22 +26,13 @@
 
   # Ensure config directories exist and have correct permissions
   # Note: /mnt/ssd and /mnt/hdd are bind-mounted from Proxmox host
+  # Note: /config is also bind-mounted from Proxmox host (/mnt/pve/bx500/maintainarr)
   systemd.tmpfiles.rules = [
-    "e /config 0755 root root -"
-    "e /config/bazarr 0755 bazarr bazarr -"
-    "e /config/radarr 0755 radarr radarr -"
-    "e /config/sonarr 0755 sonarr sonarr -"
+    "d /config 0755 root root -"
+    "d /config/bazarr 0755 bazarr bazarr -"
+    "d /config/radarr 0755 radarr radarr -"
+    "d /config/sonarr 0755 sonarr sonarr -"
   ];
-
-  # Define mount points for Proxmox bind mounts
-  # /mnt/ssd and /mnt/hdd are bind-mounted from the Proxmox host
-  fileSystems = {
-    "/config" = lib.mkDefault {
-      device = "none";
-      fsType = "tmpfs";
-      options = [ "defaults" "size=100M" "mode=0755" ];
-    };
-  };
 
   # Bazarr service
   systemd.services.bazarr = {
@@ -57,9 +48,6 @@
       Restart = "on-failure";
       RestartSec = 5;
       WorkingDirectory = "/config/bazarr";
-
-      # Ensure config directory exists before starting
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/bazarr";
 
       # Security settings
       NoNewPrivileges = true;
@@ -89,9 +77,6 @@
       RestartSec = 5;
       WorkingDirectory = "/config/radarr";
 
-      # Ensure config directory exists before starting
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/radarr";
-
       # Security settings
       NoNewPrivileges = true;
       PrivateTmp = true;
@@ -119,9 +104,6 @@
       Restart = "on-failure";
       RestartSec = 5;
       WorkingDirectory = "/config/sonarr";
-
-      # Ensure config directory exists before starting
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/sonarr";
 
       # Security settings
       NoNewPrivileges = true;
