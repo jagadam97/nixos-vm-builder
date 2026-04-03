@@ -25,35 +25,21 @@
   users.groups.sonarr = { };
 
   # Ensure config directories exist and have correct permissions
-  # Using 'e' (adjust) for config dirs that may be Proxmox bind mounts
-  # Using 'd' (create) for media mount points
+  # Note: /mnt/ssd and /mnt/hdd are bind-mounted from Proxmox host
   systemd.tmpfiles.rules = [
     "e /config 0755 root root -"
     "e /config/bazarr 0755 bazarr bazarr -"
     "e /config/radarr 0755 radarr radarr -"
     "e /config/sonarr 0755 sonarr sonarr -"
-    "d /mnt 0755 root root -"
-    "d /mnt/ssd 0755 root root -"
-    "d /mnt/hdd 0755 root root -"
   ];
 
   # Define mount points for Proxmox bind mounts
-  # These will be created but the actual mounting is handled by Proxmox
+  # /mnt/ssd and /mnt/hdd are bind-mounted from the Proxmox host
   fileSystems = {
     "/config" = lib.mkDefault {
       device = "none";
       fsType = "tmpfs";
       options = [ "defaults" "size=100M" "mode=0755" ];
-    };
-    "/mnt/ssd" = lib.mkDefault {
-      device = "none";
-      fsType = "tmpfs";
-      options = [ "defaults" "size=1M" "mode=0755" ];
-    };
-    "/mnt/hdd" = lib.mkDefault {
-      device = "none";
-      fsType = "tmpfs";
-      options = [ "defaults" "size=1M" "mode=0755" ];
     };
   };
 
@@ -72,8 +58,8 @@
       RestartSec = 5;
       WorkingDirectory = "/config/bazarr";
 
-      # Ensure mount points exist before starting
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/bazarr /mnt/ssd /mnt/hdd";
+      # Ensure config directory exists before starting
+      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/bazarr";
 
       # Security settings
       NoNewPrivileges = true;
@@ -103,8 +89,8 @@
       RestartSec = 5;
       WorkingDirectory = "/config/radarr";
 
-      # Ensure mount points exist before starting
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/radarr /mnt/ssd /mnt/hdd";
+      # Ensure config directory exists before starting
+      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/radarr";
 
       # Security settings
       NoNewPrivileges = true;
@@ -134,8 +120,8 @@
       RestartSec = 5;
       WorkingDirectory = "/config/sonarr";
 
-      # Ensure mount points exist before starting
-      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/sonarr /mnt/ssd /mnt/hdd";
+      # Ensure config directory exists before starting
+      ExecStartPre = "${pkgs.coreutils}/bin/mkdir -p /config/sonarr";
 
       # Security settings
       NoNewPrivileges = true;
