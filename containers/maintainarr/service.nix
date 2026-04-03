@@ -28,20 +28,24 @@
   # Note: /mnt/ssd and /mnt/hdd are bind-mounted from Proxmox host
   # Note: /config is also bind-mounted from Proxmox host (/mnt/pve/bx500/maintainarr)
   systemd.tmpfiles.rules = [
-    "d /config 0755 root root -"
-    "d /config/bazarr 0755 bazarr bazarr -"
-    "d /config/radarr 0755 radarr radarr -"
-    "d /config/sonarr 0755 sonarr sonarr -"
+    "d /config 0755 root root - -"
+    "d /config/bazarr 0755 bazarr bazarr - -"
+    "d /config/radarr 0755 radarr radarr - -"
+    "d /config/sonarr 0755 sonarr sonarr - -"
   ];
+
+  # Enable tmpfiles setup service
+  systemd.services.systemd-tmpfiles-setup.enable = true;
 
   # Bazarr service
   systemd.services.bazarr = {
     description = "Bazarr ${pkgs.bazarr.version} - Subtitle management";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" "local-fs.target" ];
-    requires = [ "local-fs.target" ];
+    after = [ "network.target" "systemd-tmpfiles-setup.service" ];
+    requires = [ "systemd-tmpfiles-setup.service" ];
 
     serviceConfig = {
+      Type = "simple";
       ExecStart = "${pkgs.bazarr}/bin/bazarr --config /config/bazarr --port 6767";
       User = "bazarr";
       Group = "bazarr";
@@ -66,10 +70,11 @@
   systemd.services.radarr = {
     description = "Radarr ${pkgs.radarr.version} - Movie management";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" "local-fs.target" ];
-    requires = [ "local-fs.target" ];
+    after = [ "network.target" "systemd-tmpfiles-setup.service" ];
+    requires = [ "systemd-tmpfiles-setup.service" ];
 
     serviceConfig = {
+      Type = "simple";
       ExecStart = "${pkgs.radarr}/bin/Radarr -data=/config/radarr";
       User = "radarr";
       Group = "radarr";
@@ -94,10 +99,11 @@
   systemd.services.sonarr = {
     description = "Sonarr ${pkgs.sonarr.version} - TV show management";
     wantedBy = [ "multi-user.target" ];
-    after = [ "network.target" "local-fs.target" ];
-    requires = [ "local-fs.target" ];
+    after = [ "network.target" "systemd-tmpfiles-setup.service" ];
+    requires = [ "systemd-tmpfiles-setup.service" ];
 
     serviceConfig = {
+      Type = "simple";
       ExecStart = "${pkgs.sonarr}/bin/Sonarr -data=/config/sonarr";
       User = "sonarr";
       Group = "sonarr";
