@@ -44,7 +44,7 @@ jobs:
           declare -A OLD_VERSIONS
           echo "Current versions:"
           for container in ${{ steps.discover.outputs.containers }}; do
-            VERSION=$(nix eval --raw ".#nixosConfigurations.${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.-]+' | tail -1 || echo 'unknown')
+            VERSION=$(nix eval --raw ".#nixosConfigurations.${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP '^Version: \K.*' | tail -1 || echo 'unknown')
             OLD_VERSIONS[$container]=$VERSION
             echo "  ${container}: ${VERSION}"
           done
@@ -57,7 +57,7 @@ jobs:
           echo ""
           echo "New versions:"
           for container in ${{ steps.discover.outputs.containers }}; do
-            VERSION=$(nix eval --raw ".#nixosConfigurations.${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP 'Version: \K[0-9.-]+' | tail -1 || echo 'unknown')
+            VERSION=$(nix eval --raw ".#nixosConfigurations.${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP '^Version: \K.*' | tail -1 || echo 'unknown')
             NEW_VERSIONS[$container]=$VERSION
             echo "  ${container}: ${VERSION}"
           done
