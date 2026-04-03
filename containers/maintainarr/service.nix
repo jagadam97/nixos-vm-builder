@@ -129,7 +129,7 @@
   environment.etc."build-info.txt".text = lib.mkForce ''
     Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
-    Version: ${pkgs.bazarr.version}_${pkgs.radarr.version}_${pkgs.sonarr.version}
+    Version: ${pkgs.bazarr.version}-${pkgs.radarr.version}-${pkgs.sonarr.version}
     Bazarr Version: ${pkgs.bazarr.version}
     Radarr Version: ${pkgs.radarr.version}
     Sonarr Version: ${pkgs.sonarr.version}
