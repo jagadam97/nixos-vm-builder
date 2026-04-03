@@ -41,15 +41,6 @@
     # Create qBittorrent config to allow connections from backend
     preStart = ''
       mkdir -p /var/lib/qbittorrent/qBittorrent/config
-      # Configure WebUI to accept requests from VueTorrent backend
-      # Disable host header validation to allow proxying from backend
-      cat > /var/lib/qbittorrent/qBittorrent/config/qBittorrent.conf << 'EOF'
-[Preferences]
-WebUI\HostHeaderValidation=false
-WebUI\LocalHostAuth=false
-WebUI\Port=8080
-EOF
-      chown -R qbittorrent:qbittorrent /var/lib/qbittorrent
     '';
 
     serviceConfig = {
