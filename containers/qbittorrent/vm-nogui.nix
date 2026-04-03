@@ -15,6 +15,7 @@
     # Port forwarding for testing
     forwardPorts = [
       { from = "host"; host.port = 8080; guest.port = 8080; }
+      { from = "host"; host.port = 8081; guest.port = 8081; }
     ];
   };
 

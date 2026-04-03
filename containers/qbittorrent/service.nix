@@ -62,6 +62,7 @@
   services.vuetorrent-backend = {
     enable = true;
     port = 8081;
+    qbittorrentUrl = "http://localhost:8080";
     openFirewall = true;
   };
 
@@ -74,6 +75,6 @@
   environment.etc."build-info.txt".text = lib.mkForce ''
     Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
-    qBittorrent Version: ${pkgs.qbittorrent-nox.version}
+    qBittorrent Version: ${builtins.toString pkgs.qbittorrent-nox.version}
   '';
 }

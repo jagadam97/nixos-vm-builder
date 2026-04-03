@@ -15,12 +15,11 @@ let
       owner = "VueTorrent";
       repo = "vuetorrent-backend";
       rev = "v${version}";
-      # Replace this with the actual hash (nix-prefetch-github)
-      hash = "sha256-0psf749fbgwrl7hsh50yv46dmxcb314q2r9ygcc5v285sah5fp18";
+      hash = "sha256-KFxXoNIFiV0Yez5lgUkYi/XaDNkeFKjhoZm/5RI5Tl8=";
     };
 
-    # Replace this with the actual dependency hash
-    npmDepsHash = "sha256-o1+sQDZkIWPiY4luEdDR/InFfKdNjYIoaMOBE2QyEqE=";
+    # npm dependencies hash
+    npmDepsHash = "sha256-wYcI1D2a8wsjA7ZIbeNOq3mLnA6y8p6wWetPuhwHwaQ=";
 
     dontNpmBuild = true;
 
@@ -53,6 +52,12 @@ in {
       description = "The port the backend will listen on.";
     };
 
+    qbittorrentUrl = mkOption {
+      type = types.str;
+      default = "http://localhost:8080";
+      description = "The base URL of the qBittorrent Web UI.";
+    };
+
     openFirewall = mkOption {
       type = types.bool;
       default = false;
@@ -62,9 +67,10 @@ in {
 
   config = mkIf cfg.enable {
     # Replicates 'RUN mkdir -p -m 0777 /vuetorrent'
-    # Note: Using /var/lib/vuetorrent is the NixOS standard for state
+    # The backend downloads VueTorrent updates to this directory
     systemd.tmpfiles.rules = [
       "d /var/lib/vuetorrent 0700 vuetorrent vuetorrent -"
+      "d /vuetorrent 0755 vuetorrent vuetorrent -"
     ];
 
     networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.port ];
@@ -77,6 +83,7 @@ in {
       environment = {
         PORT = toString cfg.port;
         NODE_ENV = "production";
+        QBIT_BASE = cfg.qbittorrentUrl;
       };
 
       serviceConfig = {
