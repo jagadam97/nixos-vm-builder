@@ -132,5 +132,6 @@
     Bazarr Version: ${pkgs.bazarr.version}
     Radarr Version: ${pkgs.radarr.version}
     Sonarr Version: ${pkgs.sonarr.version}
+    qBittorrent Version: ${pkgs.bazarr.version}_${pkgs.radarr.version}_${pkgs.sonarr.version}"
   '';
 }
