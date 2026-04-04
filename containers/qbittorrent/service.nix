@@ -58,8 +58,8 @@
       ProtectHome = true;
       ReadWritePaths = [
         "/var/lib/qbittorrent"
-        "/mnt/bx1000/downloads"
-        "/mnt/hd4000/downloads"
+        "/mnt/ssd/downloads"
+        "/mnt/hdd/downloads"
       ];
     };
   };
