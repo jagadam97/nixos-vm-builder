@@ -51,6 +51,7 @@
   environment.etc."build-info.txt".text = lib.mkForce ''
     Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
+    Version: ${pkgs.influxdb2-server.version}
     InfluxDB Version: ${pkgs.influxdb2-server.version}
   '';
 }
