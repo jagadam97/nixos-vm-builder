@@ -71,6 +71,7 @@ in {
     systemd.tmpfiles.rules = [
       "d /var/lib/vuetorrent 0700 vuetorrent vuetorrent -"
       "d /vuetorrent 0755 vuetorrent vuetorrent -"
+      "d /config 0755 vuetorrent vuetorrent -"
     ];
 
     networking.firewall.allowedTCPPorts = mkIf cfg.openFirewall [ cfg.port ];
@@ -98,6 +99,7 @@ in {
         # Hardening (Optional but recommended)
         ProtectSystem = "full";
         NoNewPrivileges = true;
+        ReadWritePaths = [ "/config" ];
       };
     };
     users.users.vuetorrent = {
