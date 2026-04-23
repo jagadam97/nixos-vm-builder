@@ -70,4 +70,19 @@
     enable = true;
     settings.PermitRootLogin = "yes";
   };
+
+  # Network tuning for high-speed transfers (applies to all LXC containers)
+  boot.kernel.sysctl = {
+    # TCP buffer sizes for gigabit+ throughput
+    "net.core.rmem_max" = 134217728;      # 128 MB
+    "net.core.wmem_max" = 134217728;      # 128 MB
+    "net.ipv4.tcp_rmem" = "4096 87380 134217728";   # min default max
+    "net.ipv4.tcp_wmem" = "4096 65536 134217728";   # min default max
+
+    # Additional network optimizations
+    "net.ipv4.tcp_congestion_control" = "bbr";
+    "net.core.netdev_max_backlog" = 65536;
+    "net.ipv4.tcp_notsent_lowat" = 16384;
+    "net.ipv4.tcp_window_scaling" = 1;
+  };
 }
