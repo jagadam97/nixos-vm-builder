@@ -95,7 +95,7 @@ jobs:
           echo "Release tag: ${TAG}"
 
       - name: Delete existing release if present
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.release.outcome == 'success'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -118,7 +118,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && steps.release.outcome == 'success'
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
         run: |
           gh release create "${{ steps.release.outputs.tag }}" \
             result/tarball/*.tar.xz \
