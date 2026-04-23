@@ -62,6 +62,12 @@ jobs:
         run: |
           make ${{ matrix.container }}-lxc
 
+      - name: Push to Cachix
+        run: |
+          echo "Pushing build artifacts to Cachix..."
+          cachix push jagadam97 result
+          echo "Pushed to https://jagadam97.cachix.org"
+
       - name: Prepare release info
         if: github.event_name != 'pull_request'
         id: release
