@@ -67,7 +67,7 @@ jobs:
         run: |
           echo "Pushing all build artifacts to Cachix..."
           # Push the result and its full closure recursively
-          nix path-info --recursive result | cachix push jagadam97
+          nix path-info --recursive ./result | cachix push jagadam97
           echo "Pushed closure to https://jagadam97.cachix.org"
 
       - name: Prepare release info
