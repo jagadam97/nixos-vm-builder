@@ -5,6 +5,12 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
   };
 
+  nixConfig = {
+    extra-substituters = [ "https://jagadam97.cachix.org" ];
+    # Public key will be configured automatically by cachix-action in CI
+    # For local builds: run `cachix use jagadam97` once to configure permanently
+  };
+
   outputs = { self, nixpkgs }:
     let
       system = "x86_64-linux";
