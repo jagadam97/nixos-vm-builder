@@ -35,7 +35,7 @@ list:
 # Pattern rule for LXC builds
 %-lxc:
 	@echo "Building $* LXC container..."
-	nix build .#$*-lxc --print-build-logs
+	nix build .#$*-lxc --print-build-logs --accept-flake-config
 	@echo ""
 	@echo "✓ Build complete:" && ls result/tarball/*.tar.xz
 
