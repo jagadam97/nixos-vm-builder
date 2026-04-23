@@ -65,9 +65,10 @@ jobs:
 
       - name: Push to Cachix
         run: |
-          echo "Pushing build artifacts to Cachix..."
-          cachix push jagadam97 result
-          echo "Pushed to https://jagadam97.cachix.org"
+          echo "Pushing all build artifacts to Cachix..."
+          # Push the result and its full closure recursively
+          nix path-info --recursive result | cachix push jagadam97
+          echo "Pushed closure to https://jagadam97.cachix.org"
 
       - name: Prepare release info
         if: github.event_name != 'pull_request'
