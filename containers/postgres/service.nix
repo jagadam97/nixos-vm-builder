@@ -1,6 +1,9 @@
 { config, pkgs, lib, name, platform, ... }:
 
 {
+  nixpkgs.config.allowUnfreePredicate = pkg: builtins.elem (lib.getName pkg) [
+    "timescaledb"
+  ];
   # Data lives on the attached disk — mount it at /var/lib/postgresql in Proxmox:
   #   LXC:  mp0: <disk>,mp=/var/lib/postgresql
   #   VM:   format /dev/sdb as ext4, mount at /var/lib/postgresql
