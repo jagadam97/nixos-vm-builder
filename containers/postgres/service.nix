@@ -56,7 +56,12 @@
   # Disable systemd's StateDirectory management — it tries to chown the
   # bind-mounted data dir which is blocked in unprivileged LXC containers.
   # We manage the directory ourselves via tmpfiles instead.
-  systemd.services.postgresql.serviceConfig.StateDirectory = lib.mkForce "";
+  # ProtectSystem=strict normally gets its ReadWritePaths from StateDirectory,
+  # so we must add the path back explicitly — otherwise initdb sees ROFS.
+  systemd.services.postgresql.serviceConfig = {
+    StateDirectory = lib.mkForce "";
+    ReadWritePaths = [ "/var/lib/postgresql" ];
+  };
 
   systemd.tmpfiles.rules = [
     "d /var/lib/postgresql 0700 postgres postgres -"
