@@ -11,15 +11,8 @@
     qemu.options = [ "-smp 2" ];
     graphics = false;
 
-    # Attach a second virtual disk for postgres data
-    # In production replace with the real attached disk in Proxmox
     diskSize = 1024; # MB — system disk
-    additionalDiskImages = [
-      {
-        name = "pgdata";
-        size = 20480; # 20 GB data disk
-      }
-    ];
+    emptyDiskImages = [ 20480 ]; # 20 GB virtual data disk for testing
 
     # Port forwarding for local testing
     forwardPorts = [
