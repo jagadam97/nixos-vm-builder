@@ -13,7 +13,7 @@
     settings.shared_preload_libraries = "timescaledb";
 
     # Listen on all interfaces so the backend can connect
-    settings.listen_addresses = "*";
+    settings.listen_addresses = lib.mkForce "*";
 
     # Allow connections from local network (192.168.4.0/24)
     authentication = lib.mkForce ''
