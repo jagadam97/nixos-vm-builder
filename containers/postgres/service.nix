@@ -53,7 +53,11 @@
   # Open Postgres port
   networking.firewall.allowedTCPPorts = [ 5432 ];
 
-  # Ensure data directory exists before postgres starts
+  # Disable systemd's StateDirectory management — it tries to chown the
+  # bind-mounted data dir which is blocked in unprivileged LXC containers.
+  # We manage the directory ourselves via tmpfiles instead.
+  systemd.services.postgresql.serviceConfig.StateDirectory = lib.mkForce "";
+
   systemd.tmpfiles.rules = [
     "d /var/lib/postgresql 0700 postgres postgres -"
   ];
