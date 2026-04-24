@@ -37,6 +37,7 @@ jobs:
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     strategy:
+      fail-fast: false
       matrix:
         container: ${{ fromJson(needs.discover.outputs.containers) }}
 
@@ -65,10 +66,7 @@ jobs:
 
       - name: Push to Cachix
         run: |
-          echo "Pushing entire nix store to Cachix..."
-          # Push everything in the nix store
-          nix path-info --all 2>/dev/null | cachix push jagadam97
-          echo "Pushed all store paths to https://jagadam97.cachix.org"
+          nix-store -qR result | cachix push jagadam97
 
       - name: Prepare release info
         if: github.event_name != 'pull_request'
