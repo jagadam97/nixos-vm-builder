@@ -76,6 +76,7 @@
     Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
     PostgreSQL Version: ${pkgs.postgresql_17.version}
+    Version: ${pkgs.postgresql_17.version}
     TimescaleDB: enabled
   '';
 }
