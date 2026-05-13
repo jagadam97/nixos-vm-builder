@@ -68,15 +68,15 @@
   ];
 
   environment.systemPackages = with pkgs; [
-    postgresql_17
+    postgresql_18
   ];
 
   # Build metadata
   environment.etc."build-info.txt".text = lib.mkForce ''
     Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
-    PostgreSQL Version: ${pkgs.postgresql_17.version}
-    Version: ${pkgs.postgresql_17.version}
+    PostgreSQL Version: ${pkgs.postgresql_18.version}
+    Version: ${pkgs.postgresql_18.version}
     TimescaleDB: enabled
   '';
 }
