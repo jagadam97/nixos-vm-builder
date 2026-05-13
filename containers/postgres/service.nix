@@ -9,7 +9,7 @@
   #   VM:   format /dev/sdb as ext4, mount at /var/lib/postgresql
   services.postgresql = {
     enable = true;
-    package = pkgs.postgresql_17;
+    package = pkgs.postgresql_18;
 
     # TimescaleDB
     extraPlugins = ps: with ps; [ timescaledb ];
