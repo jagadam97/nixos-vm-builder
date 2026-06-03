@@ -15,11 +15,11 @@ let
       owner = "VueTorrent";
       repo = "vuetorrent-backend";
       rev = "v${version}";
-      hash = "sha256-KFxXoNIFiV0Yez5lgUkYi/XaDNkeFKjhoZm/5RI5Tl8=";
+      hash = "sha256-/zsv18BmpjhJ1UrXCtnynzvULWI8YqzhcUWNaCo84Ls=";
     };
 
     # npm dependencies hash
-    npmDepsHash = "sha256-wYcI1D2a8wsjA7ZIbeNOq3mLnA6y8p6wWetPuhwHwaQ=";
+    npmDepsHash = "sha256-TaXOQnyZizPA8/Rr5pBNMIQl5zIiPQJs54mFPT/18o8=";
 
     dontNpmBuild = true;
 
