@@ -9,7 +9,7 @@ let
   # --- Part 1: The Package (The "Dockerfile" equivalent) ---
   vuetorrent-pkg = pkgs.buildNpmPackage rec {
     pname = "vuetorrent-backend";
-    version = "2.7.2";
+    version = "2.7.3";
 
     src = pkgs.fetchFromGitHub {
       owner = "VueTorrent";
