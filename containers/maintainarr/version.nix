@@ -1,4 +1,4 @@
 { pkgs, name, ... }:
 {
-  image.baseName = "${name}-v${pkgs.bazarr.version}-${pkgs.radarr.version}-${pkgs.sonarr.version}";
+  image.baseName = "${name}-v${pkgs.bazarr.version}-${pkgs.radarr.version}-${pkgs.sonarr.version}-${pkgs.prowlarr.version}";
 }
