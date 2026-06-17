@@ -24,6 +24,13 @@
   };
   users.groups.sonarr = { };
 
+  users.users.prowlarr = {
+    isSystemUser = true;
+    group = "prowlarr";
+    home = "/config/prowlarr";
+  };
+  users.groups.prowlarr = { };
+
   # Ensure config directories exist and have correct permissions
   # Note: /mnt/ssd and /mnt/hdd are bind-mounted from Proxmox host
   # Note: /config is also bind-mounted from Proxmox host (/mnt/pve/bx500/maintainarr)
@@ -32,6 +39,7 @@
     "d /config/bazarr 0755 bazarr bazarr - -"
     "d /config/radarr 0755 radarr radarr - -"
     "d /config/sonarr 0755 sonarr sonarr - -"
+    "d /config/prowlarr 0755 prowlarr prowlarr - -"
   ];
 
   # Enable tmpfiles setup service
@@ -124,20 +132,51 @@
     };
   };
 
+  # Prowlarr service
+  systemd.services.prowlarr = {
+    description = "Prowlarr ${pkgs.prowlarr.version} - Indexer management";
+    wantedBy = [ "multi-user.target" ];
+    after = [ "network.target" "systemd-tmpfiles-setup.service" ];
+    requires = [ "systemd-tmpfiles-setup.service" ];
+
+    serviceConfig = {
+      Type = "simple";
+      ExecStart = "${pkgs.prowlarr}/bin/Prowlarr -data=/config/prowlarr";
+      User = "prowlarr";
+      Group = "prowlarr";
+      Restart = "on-failure";
+      RestartSec = 5;
+      WorkingDirectory = "/config/prowlarr";
+
+      # Security settings
+      NoNewPrivileges = true;
+      PrivateTmp = true;
+      ProtectSystem = "strict";
+      ProtectHome = true;
+      ReadWritePaths = [
+        "/config/prowlarr"
+        "/mnt/ssd"
+        "/mnt/hdd"
+      ];
+    };
+  };
+
   # Packages
   environment.systemPackages = with pkgs; [
     bazarr
     radarr
     sonarr
+    prowlarr
   ];
 
   # Build metadata
   environment.etc."build-info.txt".text = lib.mkForce ''
     Type: ${name}-${platform}
     NixOS Version: ${config.system.nixos.version}
-    Version: ${pkgs.bazarr.version}-${pkgs.radarr.version}-${pkgs.sonarr.version}
+    Version: ${pkgs.bazarr.version}-${pkgs.radarr.version}-${pkgs.sonarr.version}-${pkgs.prowlarr.version}
     Bazarr Version: ${pkgs.bazarr.version}
     Radarr Version: ${pkgs.radarr.version}
     Sonarr Version: ${pkgs.sonarr.version}
+    Prowlarr Version: ${pkgs.prowlarr.version}
   '';
 }
