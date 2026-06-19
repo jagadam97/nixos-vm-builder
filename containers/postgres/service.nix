@@ -67,6 +67,36 @@
     "d /var/lib/postgresql 0700 postgres postgres -"
   ];
 
+  # Keep the TimescaleDB extension catalog in sync with the deployed binary.
+  # When an image rebuild bumps the TimescaleDB version, the catalog on the
+  # persisted data disk lags behind and Postgres can't load the old versioned
+  # .so (`could not access file "timescaledb-<old>"`). Run the update on every
+  # boot once Postgres is accepting connections. `ALTER EXTENSION ... UPDATE`
+  # must be the first statement in the session — the loader permits it even
+  # when the prior .so is absent — and it's a harmless no-op when already
+  # current.
+  systemd.services.timescaledb-update = {
+    description = "Sync TimescaleDB extension catalog with the deployed binary";
+    after = [ "postgresql.service" ];
+    requires = [ "postgresql.service" ];
+    wantedBy = [ "multi-user.target" ];
+    serviceConfig = {
+      Type = "oneshot";
+      User = "postgres";
+    };
+    script = ''
+      psql=${config.services.postgresql.package}/bin/psql
+      # Enumerate connectable DBs from `postgres`, which has no extension, so
+      # the listing query never trips the loader on a stale catalog.
+      dbs=$("$psql" -d postgres -tAc \
+        "SELECT datname FROM pg_database WHERE datallowconn AND datname NOT IN ('template0','template1')")
+      for db in $dbs; do
+        # First statement in a fresh session; tolerate DBs without the extension.
+        "$psql" -d "$db" -c 'ALTER EXTENSION timescaledb UPDATE;' || true
+      done
+    '';
+  };
+
   environment.systemPackages = with pkgs; [
     postgresql_18
   ];
