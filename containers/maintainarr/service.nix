@@ -70,6 +70,7 @@
         "/config/bazarr"
         "/mnt/ssd"
         "/mnt/hdd"
+        "/mnt/hdd1"
       ];
     };
   };
@@ -99,6 +100,7 @@
         "/config/radarr"
         "/mnt/ssd"
         "/mnt/hdd"
+        "/mnt/hdd1"
       ];
     };
   };
@@ -128,6 +130,7 @@
         "/config/sonarr"
         "/mnt/ssd"
         "/mnt/hdd"
+        "/mnt/hdd1"
       ];
     };
   };
@@ -157,6 +160,7 @@
         "/config/prowlarr"
         "/mnt/ssd"
         "/mnt/hdd"
+        "/mnt/hdd1"
       ];
     };
   };
