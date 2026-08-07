@@ -12,7 +12,7 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
+  issues: write
 
 jobs:
   check-and-update:
@@ -111,7 +111,7 @@ jobs:
             echo "build_results=No builds needed - no version changes" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create PR if builds pass
+      - name: Commit and push directly if builds pass
         if: steps.check-and-build.outputs.has_changes == 'true' && steps.check-and-build.outputs.build_status == '0'
         run: |
           git config user.name "github-actions[bot]"
@@ -126,28 +126,9 @@ jobs:
           ## Build Results
           ${{ steps.check-and-build.outputs.build_results }}
 
-          All builds passed. Safe to merge."
+          All builds passed."
 
-          BRANCH="update-flake-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b "$BRANCH"
-          git push -u origin "$BRANCH"
-
-          gh pr create \
-            --title "Update flake.lock - container version updates" \
-            --body "## Version Changes
-
-          ${{ steps.check-and-build.outputs.version_changes }}
-
-          ## Build Results
-
-          ${{ steps.check-and-build.outputs.build_results }}
-
-          All builds have passed. This PR is safe to merge.
-
-          **Merging this PR will:**
-          1. Update container versions
-          2. Trigger a new release build
-          3. Create a new GitHub release"
+          git push origin HEAD:main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -178,5 +159,5 @@ jobs:
       - name: No version changes
         if: steps.check-and-build.outputs.has_changes != 'true'
         run: |
-          echo "No package version changes detected. Skipping PR creation."
+          echo "No package version changes detected. Skipping commit."
           git checkout flake.lock

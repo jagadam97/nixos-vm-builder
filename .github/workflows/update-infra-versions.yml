@@ -10,7 +10,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   update-versions:
@@ -93,31 +92,18 @@ jobs:
             echo "has_changes=true" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create Pull Request
+      - name: Commit and push directly
         if: steps.changes.outputs.has_changes == 'true'
         run: |
           cd nixos-infra
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          BRANCH="auto-update-versions-$(date +%Y%m%d-%H%M%S)"
-          git checkout -b "$BRANCH"
           git add terranix/versions.nix
           git commit -m "Update container versions from nixos-vm-builder
 
           Auto-generated from releases in jagadam97/nixos-vm-builder"
 
-          git push -u origin "$BRANCH"
-
-          gh pr create \
-            --title "Update container versions" \
-            --body "Automatically updated from nixos-vm-builder releases.
-
-          ## Changelog
-
-          ${{ steps.versions.outputs.changelog }}
-
-          Check the changes and merge to apply new container versions." \
-            --base main
+          git push origin HEAD:main
         env:
           GH_TOKEN: ${{ secrets.INFRA_REPO_TOKEN }}
