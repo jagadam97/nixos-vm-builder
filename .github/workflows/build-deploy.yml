@@ -123,10 +123,17 @@ jobs:
       - name: Create release
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
         run: |
-          gh release create "${{ steps.release.outputs.tag }}" \
-            result/tarball/*.tar.xz \
-            --title "${{ steps.release.outputs.container }} ${{ steps.release.outputs.version }}" \
-            --notes "**Automated build from commit:** ${{ github.sha }}
+          TAG="${{ steps.release.outputs.tag }}"
+
+          # The tag was just pushed in the previous step; GitHub's API can
+          # briefly lag behind that push and report the tag as not-yet-visible
+          # ("exists locally but has not been pushed"). Retry instead of
+          # failing on what's just a propagation delay.
+          for attempt in 1 2 3 4 5; do
+            if gh release create "${TAG}" \
+              result/tarball/*.tar.xz \
+              --title "${{ steps.release.outputs.container }} ${{ steps.release.outputs.version }}" \
+              --notes "**Automated build from commit:** ${{ github.sha }}
 
           **Container:** ${{ matrix.container }}
           **Version:** ${{ steps.release.outputs.version }}
@@ -134,7 +141,15 @@ jobs:
           **Commit:** ${{ github.event.head_commit.message }}
 
           ### Files
-          - \`${{ steps.release.outputs.name }}\`"
+          - \`${{ steps.release.outputs.name }}\`"; then
+              exit 0
+            fi
+            echo "gh release create failed (attempt ${attempt}/5) - tag may not have propagated yet, retrying in 5s..."
+            sleep 5
+          done
+
+          echo "gh release create failed after 5 attempts"
+          exit 1
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
