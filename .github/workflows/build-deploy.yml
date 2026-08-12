@@ -91,7 +91,7 @@ jobs:
           echo "Release tag: ${TAG}"
 
       - name: Delete existing release if present
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && success()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -121,9 +121,11 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create release
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main' && success()
+        if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && success()
         run: |
           TAG="${{ steps.release.outputs.tag }}"
+          COMMIT_MESSAGE="${{ github.event.head_commit.message }}"
+          COMMIT_MESSAGE="${COMMIT_MESSAGE:-Manually triggered build}"
 
           # The tag was just pushed in the previous step; GitHub's API can
           # briefly lag behind that push and report the tag as not-yet-visible
@@ -138,7 +140,7 @@ jobs:
           **Container:** ${{ matrix.container }}
           **Version:** ${{ steps.release.outputs.version }}
           **Size:** ${{ steps.release.outputs.size }}
-          **Commit:** ${{ github.event.head_commit.message }}
+          **Commit:** ${COMMIT_MESSAGE}
 
           ### Files
           - \`${{ steps.release.outputs.name }}\`"; then
