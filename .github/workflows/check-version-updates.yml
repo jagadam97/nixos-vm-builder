@@ -13,6 +13,7 @@ on:
 permissions:
   contents: write
   issues: write
+  actions: write
 
 jobs:
   check-and-update:
@@ -129,6 +130,18 @@ jobs:
           All builds passed."
 
           git push origin HEAD:main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Build and Deploy
+        if: steps.check-and-build.outputs.has_changes == 'true' && steps.check-and-build.outputs.build_status == '0'
+        run: |
+          # Pushes made with the default GITHUB_TOKEN don't trigger other
+          # workflows' `push` events (GitHub's anti-recursion protection),
+          # so the flake.lock push above won't kick off "Build and Deploy
+          # LXC Containers" on its own. workflow_dispatch is exempt from
+          # that restriction, so trigger it explicitly.
+          gh workflow run "Build and Deploy LXC Containers" --ref main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
