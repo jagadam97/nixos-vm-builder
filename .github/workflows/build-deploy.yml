@@ -65,7 +65,7 @@ jobs:
 
       - name: Push to Cachix
         run: |
-          nix-store -qR result | cachix push jagadam97
+          nix path-info --all | grep -v '\.drv$' | cachix push jagadam97
 
       - name: Prepare release info
         if: github.event_name != 'pull_request'

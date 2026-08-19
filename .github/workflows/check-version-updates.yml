@@ -29,6 +29,13 @@ jobs:
         with:
           extra_nix_config: |
             experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: jagadam97
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
 
       - name: Discover containers
         id: discover
@@ -111,6 +118,10 @@ jobs:
             echo "build_status=0" >> $GITHUB_OUTPUT
             echo "build_results=No builds needed - no version changes" >> $GITHUB_OUTPUT
           fi
+
+      - name: Cachix push everything
+        run: |
+         nix path-info --all | grep -v '\.drv$' | cachix push jagadam97
 
       - name: Commit and push directly if builds pass
         if: steps.check-and-build.outputs.has_changes == 'true' && steps.check-and-build.outputs.build_status == '0'
