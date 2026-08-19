@@ -9,6 +9,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 jobs:
   discover:
@@ -180,5 +181,11 @@ jobs:
             result/tarball/*.tar.xz \
             --title "${{ steps.release.outputs.container }} ${{ steps.release.outputs.version }}" \
             --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Trigger Infra version upgrade
+        run: |
+         gh workflow run "Update Infrastructure Versions" --ref main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
