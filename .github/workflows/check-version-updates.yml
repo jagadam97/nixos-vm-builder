@@ -206,20 +206,28 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
+          # VERSION_CHANGES/BUILD_RESULTS come in via `env:` and are written to
+          # a file rather than interpolated with `${{ }}` into a quoted -m
+          # argument, where backticks in the text would run as shell.
+          {
+            echo "Update flake.lock - new container versions"
+            echo ""
+            echo "## Version Changes"
+            echo "${VERSION_CHANGES}"
+            echo "## Build Results"
+            echo "${BUILD_RESULTS}"
+            echo ""
+            echo "All builds passed."
+          } > "${RUNNER_TEMP}/commit-msg.txt"
+
           git add flake.lock
-          git commit -m "Update flake.lock - new container versions
-
-          ## Version Changes
-          ${{ needs.check.outputs.version_changes }}
-
-          ## Build Results
-          ${{ steps.results.outputs.build_results }}
-
-          All builds passed."
+          git commit -F "${RUNNER_TEMP}/commit-msg.txt"
 
           git push origin HEAD:main
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_CHANGES: ${{ needs.check.outputs.version_changes }}
+          BUILD_RESULTS: ${{ steps.results.outputs.build_results }}
 
       - name: Trigger Build and Deploy
         if: needs.build.result == 'success'
@@ -238,20 +246,28 @@ jobs:
         run: |
           echo "Build failed! flake.lock was never committed."
 
+          # Same reasoning as the commit step: pass the text through `env:` and
+          # a file, never inline `${{ }}` into a quoted shell argument.
+          {
+            echo "## Build Failure"
+            echo ""
+            echo "The automated update check found new versions but builds failed."
+            echo ""
+            echo "## Build Results"
+            echo ""
+            echo "${BUILD_RESULTS}"
+            echo ""
+            echo "## Versions Attempted"
+            echo ""
+            echo "${VERSION_CHANGES}"
+            echo ""
+            echo "Please investigate and fix manually."
+          } > "${RUNNER_TEMP}/issue-body.md"
+
           gh issue create \
             --title "Container build failed after flake update" \
-            --body "## Build Failure
-
-          The automated update check found new versions but builds failed.
-
-          ## Build Results
-
-          ${{ steps.results.outputs.build_results }}
-
-          ## Versions Attempted
-
-          ${{ needs.check.outputs.version_changes }}
-
-          Please investigate and fix manually." || true
+            --body-file "${RUNNER_TEMP}/issue-body.md" || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION_CHANGES: ${{ needs.check.outputs.version_changes }}
+          BUILD_RESULTS: ${{ steps.results.outputs.build_results }}
