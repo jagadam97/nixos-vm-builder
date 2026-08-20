@@ -19,7 +19,9 @@ concurrency:
 
 jobs:
   update-versions:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
+    # workflow_run fires on `completed` whatever the conclusion; a failed
+    # build can leave releases half-deleted. Other triggers are unaffected.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout vm-builder

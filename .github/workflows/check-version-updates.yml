@@ -15,11 +15,22 @@ permissions:
   issues: write
   actions: write
 
+# A run updates flake.lock and pushes it to main. Overlapping runs (the
+# nightly schedule landing on top of a workflow_run one) would race on
+# that push, so let one finish before the next starts.
+concurrency:
+  group: check-version-updates
+  cancel-in-progress: false
+
 jobs:
   # Stage 1: update the lock once and decide whether anything changed.
   # The updated flake.lock is passed to the build matrix as an artifact so
   # every container builds against the exact same lock.
   check:
+    # workflow_run fires on `completed` whatever the conclusion, so without
+    # this a failed build would still kick off a full update cycle. The
+    # schedule and manual dispatch are unaffected.
+    if: github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
