@@ -16,10 +16,17 @@ permissions:
   actions: write
 
 jobs:
-  check-and-update:
+  # Stage 1: update the lock once and decide whether anything changed.
+  # The updated flake.lock is passed to the build matrix as an artifact so
+  # every container builds against the exact same lock.
+  check:
     runs-on: ubuntu-latest
     env:
       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    outputs:
+      containers: ${{ steps.discover.outputs.containers }}
+      has_changes: ${{ steps.check.outputs.has_changes }}
+      version_changes: ${{ steps.check.outputs.version_changes }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -40,18 +47,19 @@ jobs:
       - name: Discover containers
         id: discover
         run: |
-          # Find all container directories (excluding common)
-          CONTAINERS=$(ls -d containers/*/ 2>/dev/null | xargs -n1 basename | grep -v '^common$' | tr '\n' ' ')
-          echo "containers=$CONTAINERS" >> $GITHUB_OUTPUT
+          # JSON array for the build matrix, space-separated list for the loops below
+          CONTAINERS=$(ls -d containers/*/ 2>/dev/null | xargs -n1 basename | grep -v '^common$')
+          echo "containers=$(echo "$CONTAINERS" | jq -R -s -c 'split("\n") | map(select(length > 0))')" >> $GITHUB_OUTPUT
+          echo "list=$(echo "$CONTAINERS" | tr '\n' ' ')" >> $GITHUB_OUTPUT
           echo "Found containers: $CONTAINERS"
 
-      - name: Check versions and build if changed
-        id: check-and-build
+      - name: Check versions
+        id: check
         run: |
           # Get current versions
           declare -A OLD_VERSIONS
           echo "Current versions:"
-          for container in ${{ steps.discover.outputs.containers }}; do
+          for container in ${{ steps.discover.outputs.list }}; do
             VERSION=$(nix eval --raw ".#nixosConfigurations.${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP '^Version: \K.*' | tail -1 || echo 'unknown')
             OLD_VERSIONS[$container]=$VERSION
             echo "  ${container}: ${VERSION}"
@@ -64,7 +72,7 @@ jobs:
           declare -A NEW_VERSIONS
           echo ""
           echo "New versions:"
-          for container in ${{ steps.discover.outputs.containers }}; do
+          for container in ${{ steps.discover.outputs.list }}; do
             VERSION=$(nix eval --raw ".#nixosConfigurations.${container}-lxc.config.environment.etc.\"build-info.txt\".text" 2>/dev/null | grep -oP '^Version: \K.*' | tail -1 || echo 'unknown')
             NEW_VERSIONS[$container]=$VERSION
             echo "  ${container}: ${VERSION}"
@@ -74,7 +82,7 @@ jobs:
           HAS_CHANGES=false
           VERSION_CHANGES=""
 
-          for container in ${{ steps.discover.outputs.containers }}; do
+          for container in ${{ steps.discover.outputs.list }}; do
             OLD="${OLD_VERSIONS[$container]}"
             NEW="${NEW_VERSIONS[$container]}"
 
@@ -92,39 +100,108 @@ jobs:
           echo -e "$VERSION_CHANGES" >> $GITHUB_OUTPUT
           echo "EOF" >> $GITHUB_OUTPUT
 
-          # Build if there are changes
-          if [ "$HAS_CHANGES" = "true" ]; then
-            BUILD_STATUS=0
-            BUILD_RESULTS=""
+      - name: Upload updated flake.lock
+        if: steps.check.outputs.has_changes == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: flake-lock
+          path: flake.lock
+          retention-days: 1
 
-            echo ""
-            echo "Building containers..."
+  # Stage 2: one runner per container, all in parallel.
+  build:
+    needs: check
+    if: needs.check.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    strategy:
+      fail-fast: false
+      matrix:
+        container: ${{ fromJson(needs.check.outputs.containers) }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
 
-            for container in ${{ steps.discover.outputs.containers }}; do
-              echo "Building ${container}-lxc..."
-              if make "${container}-lxc" 2>&1 | tee "build-${container}.log"; then
-                BUILD_RESULTS="${BUILD_RESULTS}✅ ${container}-lxc: built successfully\n"
-              else
-                BUILD_RESULTS="${BUILD_RESULTS}❌ ${container}-lxc: build failed\n"
-                BUILD_STATUS=1
-              fi
-            done
+      - name: Use updated flake.lock
+        uses: actions/download-artifact@v4
+        with:
+          name: flake-lock
 
-            echo "build_status=$BUILD_STATUS" >> $GITHUB_OUTPUT
-            echo "build_results<<EOF" >> $GITHUB_OUTPUT
-            echo -e "$BUILD_RESULTS" >> $GITHUB_OUTPUT
-            echo "EOF" >> $GITHUB_OUTPUT
-          else
-            echo "build_status=0" >> $GITHUB_OUTPUT
-            echo "build_results=No builds needed - no version changes" >> $GITHUB_OUTPUT
-          fi
+      - name: Install Nix
+        uses: cachix/install-nix-action@v27
+        with:
+          extra_nix_config: |
+            experimental-features = nix-command flakes
+            accept-flake-config = true
+
+      - name: Setup Cachix
+        uses: cachix/cachix-action@v14
+        with:
+          name: jagadam97
+          authToken: '${{ secrets.CACHIX_AUTH_TOKEN }}'
+
+      - name: Build ${{ matrix.container }}-lxc
+        id: build
+        run: |
+          make "${{ matrix.container }}-lxc"
 
       - name: Cachix push everything
         run: |
-         nix path-info --all | grep -v '\.drv$' | cachix push jagadam97
+          nix path-info --all | grep -v '\.drv$' | cachix push jagadam97
+
+      - name: Record build result
+        if: always()
+        run: |
+          mkdir -p build-status
+          if [ "${{ steps.build.outcome }}" = "success" ]; then
+            echo "✅ ${{ matrix.container }}-lxc: built successfully" > "build-status/${{ matrix.container }}.txt"
+          else
+            echo "❌ ${{ matrix.container }}-lxc: build failed" > "build-status/${{ matrix.container }}.txt"
+          fi
+
+      - name: Upload build result
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-status-${{ matrix.container }}
+          path: build-status/
+          retention-days: 1
+
+  # Stage 3: all builds are in - commit the lock, or open an issue.
+  finalize:
+    needs: [ check, build ]
+    if: always() && needs.check.outputs.has_changes == 'true'
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download build results
+        uses: actions/download-artifact@v4
+        with:
+          pattern: build-status-*
+          path: build-status
+          merge-multiple: true
+
+      - name: Aggregate build results
+        id: results
+        run: |
+          echo "build_results<<EOF" >> $GITHUB_OUTPUT
+          cat build-status/*.txt >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+          cat build-status/*.txt
+
+      - name: Download updated flake.lock
+        if: needs.build.result == 'success'
+        uses: actions/download-artifact@v4
+        with:
+          name: flake-lock
 
       - name: Commit and push directly if builds pass
-        if: steps.check-and-build.outputs.has_changes == 'true' && steps.check-and-build.outputs.build_status == '0'
+        if: needs.build.result == 'success'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
@@ -133,10 +210,10 @@ jobs:
           git commit -m "Update flake.lock - new container versions
 
           ## Version Changes
-          ${{ steps.check-and-build.outputs.version_changes }}
+          ${{ needs.check.outputs.version_changes }}
 
           ## Build Results
-          ${{ steps.check-and-build.outputs.build_results }}
+          ${{ steps.results.outputs.build_results }}
 
           All builds passed."
 
@@ -145,7 +222,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Trigger Build and Deploy
-        if: steps.check-and-build.outputs.has_changes == 'true' && steps.check-and-build.outputs.build_status == '0'
+        if: needs.build.result == 'success'
         run: |
           # Pushes made with the default GITHUB_TOKEN don't trigger other
           # workflows' `push` events (GitHub's anti-recursion protection),
@@ -156,11 +233,10 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build failed - revert and notify
-        if: steps.check-and-build.outputs.has_changes == 'true' && steps.check-and-build.outputs.build_status != '0'
+      - name: Build failed - notify
+        if: needs.build.result != 'success'
         run: |
-          echo "Build failed! Reverting changes."
-          git checkout flake.lock
+          echo "Build failed! flake.lock was never committed."
 
           gh issue create \
             --title "Container build failed after flake update" \
@@ -170,18 +246,12 @@ jobs:
 
           ## Build Results
 
-          ${{ steps.check-and-build.outputs.build_results }}
+          ${{ steps.results.outputs.build_results }}
 
           ## Versions Attempted
 
-          ${{ steps.check-and-build.outputs.version_changes }}
+          ${{ needs.check.outputs.version_changes }}
 
           Please investigate and fix manually." || true
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: No version changes
-        if: steps.check-and-build.outputs.has_changes != 'true'
-        run: |
-          echo "No package version changes detected. Skipping commit."
-          git checkout flake.lock
