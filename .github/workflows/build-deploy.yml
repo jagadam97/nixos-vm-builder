@@ -125,7 +125,7 @@ jobs:
         if: (github.event_name == 'push' || github.event_name == 'workflow_dispatch') && github.ref == 'refs/heads/main' && success()
         run: |
           TAG="${{ steps.release.outputs.tag }}"
-          # COMMIT_MESSAGE arrives via `env:` below, never `${{ }}` inline.
+          # COMMIT_MESSAGE arrives via `env:` below, never inline expression interpolation.
           # Inline interpolation pastes the raw message into this script, so a
           # multi-line message or one containing backticks gets executed as
           # shell instead of being treated as text.

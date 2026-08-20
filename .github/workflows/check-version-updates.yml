@@ -207,7 +207,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
 
           # VERSION_CHANGES/BUILD_RESULTS come in via `env:` and are written to
-          # a file rather than interpolated with `${{ }}` into a quoted -m
+          # a file rather than interpolated with an inline expression into a quoted -m
           # argument, where backticks in the text would run as shell.
           {
             echo "Update flake.lock - new container versions"
@@ -247,7 +247,7 @@ jobs:
           echo "Build failed! flake.lock was never committed."
 
           # Same reasoning as the commit step: pass the text through `env:` and
-          # a file, never inline `${{ }}` into a quoted shell argument.
+          # a file, never an inline expression in a quoted shell argument.
           {
             echo "## Build Failure"
             echo ""
