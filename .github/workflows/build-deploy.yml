@@ -187,9 +187,3 @@ jobs:
             --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Trigger Infra version upgrade
-        run: |
-         gh workflow run "Update Infrastructure Versions" --ref main
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

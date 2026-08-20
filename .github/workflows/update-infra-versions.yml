@@ -11,8 +11,15 @@ on:
 permissions:
   contents: write
 
+# Runs regenerate versions.nix in nixos-infra and push it. Overlapping
+# runs would race on that file, so let one finish before the next starts.
+concurrency:
+  group: update-infra-versions
+  cancel-in-progress: false
+
 jobs:
   update-versions:
+    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout vm-builder
