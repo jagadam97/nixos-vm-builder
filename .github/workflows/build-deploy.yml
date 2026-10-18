@@ -187,3 +187,18 @@ jobs:
             --generate-notes
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  trigger-infra-update:
+    # "Check for Updates" dispatches this workflow with GITHUB_TOKEN, so the
+    # run's actor is github-actions[bot]. GitHub suppresses workflow_run
+    # events for such runs (anti-recursion), so "Update Infrastructure
+    # Versions" never fires on its own. Dispatch it explicitly in that case;
+    # human-triggered runs still chain via workflow_run.
+    needs: build-and-deploy
+    if: success() && github.actor == 'github-actions[bot]' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Dispatch Update Infrastructure Versions
+        run: gh workflow run "Update Infrastructure Versions" --repo "$GITHUB_REPOSITORY" --ref main
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
